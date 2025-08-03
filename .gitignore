@@ -1,0 +1,11 @@
+node_modules
+logs
+*.log
+*.pid
+*.txt
+*.json
+*.csv
+*.xlsx
+*.xls
+*.docx
+*.doc
