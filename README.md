@@ -1,129 +1,136 @@
-# Uniswap V2 子图监控调度器
+# Uniswap V2 Subgraph Monitor Scheduler
 
-这是一个用于定时监控 Uniswap V2 子图扫链进度和数据库大小的自动化工具。
+[English](README.md) · [中文](README.zh-CN.md)
 
-## 功能特性
+An automated monitoring system for Uniswap V2 subgraph indexing progress with scheduled monitoring, database tracking, and comprehensive reporting.
 
-- 🕐 **定时监控**: 每天早上 7:00 自动执行监控任务
-- 📊 **进度跟踪**: 实时监控子图扫描进度
-- 💾 **数据库监控**: 跟踪数据库大小和记录数量
-- 🐳 **Docker 状态**: 监控容器运行状态
-- 📈 **报告生成**: 生成详细的监控报告
-- 📝 **日志记录**: 完整的操作日志记录
-- ⚙️ **灵活配置**: 通过配置文件轻松修改监控参数
-- ⏰ **自动停止**: 10天后自动停止监控
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Node.js](https://img.shields.io/badge/Node.js-16+-green.svg)](https://nodejs.org/)
+[![Docker](https://img.shields.io/badge/Docker-Required-blue.svg)](https://docker.com/)
 
-## 项目结构
+## ✨ Features
+
+- 🕐 **Scheduled Monitoring**: Automated daily monitoring at 7:00 AM
+- 📊 **Progress Tracking**: Real-time subgraph indexing progress monitoring
+- 💾 **Database Monitoring**: Track database size and record counts
+- 🐳 **Docker Status**: Monitor container health and status
+- 📈 **Comprehensive Reporting**: Generate detailed JSON and readable reports
+- 📝 **Complete Logging**: Full operation logs with timestamps
+- ⚙️ **Flexible Configuration**: Easy parameter modification via config files
+- ⏰ **Auto-Stop**: Automatic shutdown after configured monitoring period
+
+## 🏗️ Project Structure
 
 ```
 uniswap-monitor-scheduler/
-├── index.js          # 主程序 - 定时任务调度器
-├── monitor.js        # 监控核心逻辑
-├── config.js         # 配置文件 - 所有可配置参数
-├── config-helper.js  # 配置助手 - 方便修改配置
-├── test.js          # 测试脚本
-├── start.sh         # 启动脚本
-├── package.json     # 项目配置
-├── README.md        # 项目说明
-├── logs/            # 日志目录
-└── reports/         # 报告目录
+├── index.js          # Main scheduler - cron job manager
+├── monitor.js        # Core monitoring logic
+├── config.js         # Configuration file - all configurable parameters
+├── config-helper.js  # Config helper - easy parameter modification
+├── test.js          # Test script
+├── start.sh         # Startup script
+├── package.json     # Project configuration
+├── README.md        # English documentation
+├── README.zh-CN.md  # Chinese documentation
+├── logs/            # Log directory
+└── reports/         # Report directory
 ```
 
-## 配置管理
+## ⚙️ Configuration Management
 
-### 📝 配置文件 (config.js)
+### 📝 Configuration File (config.js)
 
-所有监控参数都集中在 `config.js` 文件中，方便修改：
+All monitoring parameters are centralized in `config.js` for easy modification:
 
 ```javascript
 module.exports = {
-    MONITOR_DAYS: 10,                    // 监控天数
-    CRON_SCHEDULE: '0 7 * * *',         // 定时任务表达式
-    TIMEZONE: 'Asia/Shanghai',           // 时区设置
-    SUBGRAPH_PATH: '/path/to/subgraph',  // 子图路径
-    GRAPHQL_ENDPOINT: 'http://...',      // GraphQL端点
-    ETHEREUM_RPC: 'https://...',         // 以太坊RPC
-    // ... 更多配置项
+    MONITOR_DAYS: 10,                    // Monitoring duration in days
+    CRON_SCHEDULE: '0 7 * * *',         // Cron job expression
+    TIMEZONE: 'Asia/Shanghai',           // Timezone setting
+    SUBGRAPH_PATH: '/path/to/subgraph',  // Subgraph path
+    GRAPHQL_ENDPOINT: 'http://...',      // GraphQL endpoint
+    ETHEREUM_RPC: 'https://...',         // Ethereum RPC
+    // ... more configuration items
 };
 ```
 
-### 🛠️ 配置助手
+### 🛠️ Configuration Helper
 
-使用配置助手可以轻松查看和修改配置：
+Use the config helper to easily view and modify settings:
 
 ```bash
-# 查看当前配置
+# View current configuration
 node config-helper.js
 
-# 修改监控天数
+# Modify monitoring duration
 node config-helper.js days 15
 
-# 修改定时任务
+# Modify cron schedule
 node config-helper.js schedule "0 8 * * *"
 
-# 修改时区
+# Modify timezone
 node config-helper.js timezone "America/New_York"
 
-# 查看帮助
+# View help
 node config-helper.js help
 ```
 
-## 安装和配置
+## 🚀 Quick Start
 
-### 1. 安装依赖
+### 1. Install Dependencies
 
 ```bash
 cd /home/code/uniswap-v2-monitor/uniswap-monitor-scheduler
 npm install
 ```
 
-### 2. 查看和修改配置
+### 2. View and Modify Configuration
 
 ```bash
-# 查看当前配置
+# View current configuration
 node config-helper.js
 
-# 修改监控天数为15天
+# Modify monitoring duration to 15 days
 node config-helper.js days 15
 ```
 
-### 3. 测试监控功能
+### 3. Test Monitoring Functionality
 
 ```bash
-# 运行测试脚本
+# Run test script
 npm run test
 ```
 
-### 4. 启动监控调度器
+### 4. Start Monitoring Scheduler
 
 ```bash
-# 启动定时监控
+# Start scheduled monitoring
 npm start
-# 或者使用启动脚本
+# Or use startup script
 ./start.sh start
 ```
 
-## 监控内容
+## 📊 Monitoring Content
 
-### 📊 区块进度监控
-- 当前以太坊最新区块
-- 子图已扫描区块
-- 扫描进度百分比
-- 剩余待扫描区块数量
+### 📊 Block Progress Monitoring
+- Current Ethereum latest block
+- Subgraph scanned blocks
+- Scanning progress percentage
+- Remaining blocks to scan
 
-### 💾 数据库监控
-- PostgreSQL 数据库大小
-- 各表记录数量统计
-- 数据增长趋势
+### 💾 Database Monitoring
+- PostgreSQL database size
+- Record count statistics for each table
+- Data growth trends
 
-### 🐳 系统状态监控
-- Docker 容器运行状态
-- Graph 节点健康状态
-- 网络连接状态
+### 🐳 System Status Monitoring
+- Docker container running status
+- Graph node health status
+- Network connection status
 
-## 报告格式
+## 📋 Report Formats
 
-### JSON 报告
+### JSON Report
 ```json
 {
   "timestamp": "2024-08-03 07:00:00",
@@ -144,163 +151,171 @@ npm start
 }
 ```
 
-### 可读报告
+### Readable Report
 ```
-=== Uniswap V2 子图监控报告 ===
-生成时间: 2024-08-03 07:00:00
+=== Uniswap V2 Subgraph Monitoring Report ===
+Generated: 2024-08-03 07:00:00
 
-📊 区块进度:
-  当前以太坊区块: 23,056,926
-  子图扫描区块: 10,004,985
-  扫描进度: 0.03%
-  已扫描区块: 4,150
-  剩余区块: 13,047,791
+📊 Block Progress:
+  Current Ethereum Block: 23,056,926
+  Subgraph Scanned Block: 10,004,985
+  Scanning Progress: 0.03%
+  Scanned Blocks: 4,150
+  Remaining Blocks: 13,047,791
 
-💾 数据库信息:
-  数据库大小: 718M
+💾 Database Information:
+  Database Size: 718M
 
-📈 数据统计:
-  chain1.blocks: 2,840 条记录
-  sgd1.pair: 0 条记录
-  sgd1.swap: 0 条记录
+📈 Data Statistics:
+  chain1.blocks: 2,840 records
+  sgd1.pair: 0 records
+  sgd1.swap: 0 records
 ```
 
-## 使用方法
+## 🛠️ Usage
 
-### 1. 手动执行监控
+### 1. Manual Monitoring Execution
 
 ```bash
-# 直接运行监控脚本
+# Run monitoring script directly
 node monitor.js
 ```
 
-### 2. 启动定时监控
+### 2. Start Scheduled Monitoring
 
 ```bash
-# 启动调度器（每天早上7点执行）
+# Start scheduler (executes daily at 7 AM)
 npm start
-# 或使用启动脚本
+# Or use startup script
 ./start.sh start
 ```
 
-### 3. 后台运行
+### 3. Background Operation
 
 ```bash
-# 使用 nohup 后台运行
+# Run in background with nohup
 nohup npm start > scheduler.log 2>&1 &
 
-# 查看进程
+# Check process
 ps aux | grep node
 
-# 停止进程
+# Stop process
 pkill -f "node index.js"
 ```
 
-### 4. 管理调度器
+### 4. Scheduler Management
 
 ```bash
-# 查看状态
+# Check status
 ./start.sh status
 
-# 停止调度器
+# Stop scheduler
 ./start.sh stop
 
-# 重启调度器
+# Restart scheduler
 ./start.sh restart
 
-# 查看日志
+# View logs
 ./start.sh logs
 
-# 查看报告
+# View reports
 ./start.sh reports
 ```
 
-## 日志和报告
+## 📁 Logs and Reports
 
-### 日志文件
-- `logs/monitor-YYYY-MM-DD.log`: 监控任务日志
-- `logs/scheduler-YYYY-MM-DD.log`: 调度器日志
+### Log Files
+- `logs/monitor-YYYY-MM-DD.log`: Monitoring task logs
+- `logs/scheduler-YYYY-MM-DD.log`: Scheduler logs
 
-### 报告文件
-- `reports/report-YYYY-MM-DD-HH-mm.json`: JSON 格式报告
-- `reports/report-YYYY-MM-DD-HH-mm.txt`: 可读格式报告
+### Report Files
+- `reports/report-YYYY-MM-DD-HH-mm.json`: JSON format reports
+- `reports/report-YYYY-MM-DD-HH-mm.txt`: Readable format reports
 
-## 配置说明
+## ⚙️ Configuration
 
-### 监控路径
-- 子图项目路径: `/home/code/uniswap-v2-monitor/uniswap-v2-monitor-subgraph`
-- GraphQL 端点: `http://localhost:8000/subgraphs/name/uni-swap-v2-monitor`
+### Monitoring Paths
+- Subgraph project path: `/home/code/uniswap-v2-monitor/uniswap-v2-monitor-subgraph`
+- GraphQL endpoint: `http://localhost:8000/subgraphs/name/uni-swap-v2-monitor`
 
-### 定时配置
-- 执行时间: 每天早上 7:00
-- 时区: Asia/Shanghai
-- 监控周期: 10天 (可在 config.js 中修改)
+### Schedule Configuration
+- Execution time: Daily at 7:00 AM
+- Timezone: Asia/Shanghai
+- Monitoring period: 10 days (configurable in config.js)
 
-### 可配置参数
+### Configurable Parameters
 
-| 参数 | 说明 | 默认值 |
-|------|------|--------|
-| `MONITOR_DAYS` | 监控天数 | 10 |
-| `CRON_SCHEDULE` | 定时任务表达式 | `0 7 * * *` |
-| `TIMEZONE` | 时区 | `Asia/Shanghai` |
-| `SUBGRAPH_PATH` | 子图路径 | `/home/code/...` |
-| `GRAPHQL_ENDPOINT` | GraphQL端点 | `http://localhost:8000/...` |
-| `ETHEREUM_RPC` | 以太坊RPC | `https://eth.llamarpc.com` |
-| `REQUEST_TIMEOUT` | 请求超时时间 | 10000ms |
-| `MAX_RETRIES` | 最大重试次数 | 3 |
+| Parameter | Description | Default Value |
+|-----------|-------------|---------------|
+| `MONITOR_DAYS` | Monitoring duration in days | 10 |
+| `CRON_SCHEDULE` | Cron job expression | `0 7 * * *` |
+| `TIMEZONE` | Timezone | `Asia/Shanghai` |
+| `SUBGRAPH_PATH` | Subgraph path | `/home/code/...` |
+| `GRAPHQL_ENDPOINT` | GraphQL endpoint | `http://localhost:8000/...` |
+| `ETHEREUM_RPC` | Ethereum RPC | `https://eth.llamarpc.com` |
+| `REQUEST_TIMEOUT` | Request timeout | 10000ms |
+| `MAX_RETRIES` | Maximum retry attempts | 3 |
 
-## 故障排除
+## 🔧 Troubleshooting
 
-### 常见问题
+### Common Issues
 
-1. **子图服务未启动**
+1. **Subgraph Service Not Running**
    ```bash
-   # 检查 Docker 容器状态
+   # Check Docker container status
    docker ps --filter "name=uni-swap-v2-monitor"
    
-   # 启动子图服务
+   # Start subgraph service
    cd /home/code/uniswap-v2-monitor/uniswap-v2-monitor-subgraph
    docker-compose up -d
    ```
 
-2. **数据库连接失败**
+2. **Database Connection Failed**
    ```bash
-   # 检查 PostgreSQL 容器
+   # Check PostgreSQL container
    docker logs uni-swap-v2-monitor_postgres_1
    
-   # 重启数据库
+   # Restart database
    docker-compose restart postgres
    ```
 
-3. **权限问题**
+3. **Permission Issues**
    ```bash
-   # 确保脚本有执行权限
+   # Ensure scripts have execution permissions
    chmod +x monitor.js
    chmod +x index.js
    chmod +x config-helper.js
    ```
 
-### 调试模式
+### Debug Mode
 
 ```bash
-# 启用详细日志
+# Enable detailed logging
 DEBUG=* npm start
 
-# 查看实时日志
+# View real-time logs
 tail -f logs/scheduler-$(date +%Y-%m-%d).log
 ```
 
-## 扩展功能
+## 🚀 Extensions
 
-### 邮件通知
-可以添加邮件通知功能，在监控任务完成后发送报告邮件。
+### Email Notifications
+Add email notification functionality to send reports after monitoring tasks complete.
 
-### 微信/钉钉通知
-可以集成企业微信或钉钉机器人，发送监控通知。
+### WeChat/DingTalk Notifications
+Integrate with WeChat or DingTalk bots to send monitoring notifications.
 
-### 数据可视化
-可以将监控数据导入到 Grafana 等工具进行可视化展示。
+### Data Visualization
+Import monitoring data into tools like Grafana for visual display.
 
-## 许可证
+## 📄 License
 
-MIT License 
+[MIT License](LICENSE)
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## 📞 Support
+
+If you have any questions or issues, please [open an issue](https://github.com/yy9331/uniswap-monitor-scheduler/issues). 
