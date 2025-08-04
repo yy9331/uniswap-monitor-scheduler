@@ -14,6 +14,11 @@
 - **[TypeScript 迁移指南](TYPESCRIPT_MIGRATION.md)** - 从 JavaScript 到 TypeScript 的完整迁移过程
 - **[TypeScript 迁移指南 (英文)](TYPESCRIPT_MIGRATION_EN.md)** - Complete migration process from JavaScript to TypeScript
 
+### 🚨 故障排除指南
+
+- **[故障排除指南](TROUBLESHOOTING.md)** - 常见问题诊断和解决方案
+- **[故障排除指南 (英文)](TROUBLESHOOTING_EN.md)** - Common issues diagnosis and solutions
+
 ### 📋 快速参考
 
 #### 生产环境推荐流程

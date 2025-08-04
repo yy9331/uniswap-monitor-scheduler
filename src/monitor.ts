@@ -5,7 +5,7 @@ import moment from 'moment';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import config from './config';
-import { MonitorReport, ProgressInfo, DiskSpaceInfo, ProjectSpaceInfo } from './types';
+import { MonitorReport, ProgressInfo, DiskSpaceInfo, ProjectSpaceInfo, SubgraphHealthInfo } from './types';
 
 const execAsync = promisify(exec);
 
@@ -104,9 +104,9 @@ class UniswapMonitor {
                     SELECT 'sgd1.pair_created' as table_name, COUNT(*) as count FROM sgd1.pair_created
                     UNION ALL
                     SELECT 'sgd1.token' as table_name, COUNT(*) as count FROM sgd1.token;
-                " --csv --no-align --tuples-only
+                " -t -A
             `);
-            return stdout.trim().split('\n');
+            return stdout.trim().split('\n').filter(line => line.trim().length > 0);
         } catch (error) {
             await this.log(`获取数据库统计失败: ${error instanceof Error ? error.message : 'Unknown error'}`);
             return [];
@@ -228,6 +228,98 @@ class UniswapMonitor {
         }
     }
 
+    async getSubgraphHealth(): Promise<SubgraphHealthInfo> {
+        try {
+            // 检查 Graph Node 错误日志
+            const { stdout: errorLogs } = await execAsync(`
+                docker logs uniswap-v2-monitor-subgraph_graph-node_1 2>&1 | grep -i error | tail -5
+            `);
+            
+            const errors = errorLogs.trim().split('\n').filter(line => line.length > 0);
+            const hasErrors = errors.length > 0;
+            
+            // 检查重试次数
+            const retryCount = errors.filter(error => error.includes('retry')).length;
+            
+            // 检查最后错误时间
+            const lastErrorTime = hasErrors ? moment().format('YYYY-MM-DD HH:mm:ss') : null;
+            
+            // 检查是否卡住（通过比较历史进度）
+            const currentBlock = await this.getSubgraphProgress();
+            const isStuck = await this.checkIfStuck(currentBlock);
+            const stuckDuration = isStuck ? await this.getStuckDuration() : null;
+            
+            return {
+                isHealthy: !hasErrors && !isStuck,
+                errors,
+                lastErrorTime,
+                retryCount,
+                isStuck,
+                stuckDuration
+            };
+        } catch (error) {
+            await this.log(`获取子图健康状态失败: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            return {
+                isHealthy: false,
+                errors: [`获取健康状态失败: ${error instanceof Error ? error.message : 'Unknown error'}`],
+                lastErrorTime: moment().format('YYYY-MM-DD HH:mm:ss'),
+                retryCount: 0,
+                isStuck: false,
+                stuckDuration: null
+            };
+        }
+    }
+
+    private async checkIfStuck(currentBlock: number | null): Promise<boolean> {
+        try {
+            // 读取历史进度文件
+            const historyFile = path.join(this.reportPath, 'progress_history.json');
+            
+            if (await fs.pathExists(historyFile)) {
+                const historyData = await fs.readJson(historyFile);
+                const lastBlock = historyData.lastBlock || 0;
+                const lastCheckTime = historyData.lastCheckTime || 0;
+                
+                // 如果区块号没有变化且超过1小时，认为卡住了
+                if (currentBlock === lastBlock && 
+                    moment().diff(moment(lastCheckTime), 'hours') >= 1) {
+                    return true;
+                }
+            }
+            
+            // 保存当前进度
+            await fs.writeJson(historyFile, {
+                lastBlock: currentBlock,
+                lastCheckTime: moment().toISOString()
+            });
+            
+            return false;
+        } catch (error) {
+            await this.log(`检查卡住状态失败: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            return false;
+        }
+    }
+
+    private async getStuckDuration(): Promise<string> {
+        try {
+            const historyFile = path.join(this.reportPath, 'progress_history.json');
+            
+            if (await fs.pathExists(historyFile)) {
+                const historyData = await fs.readJson(historyFile);
+                const lastCheckTime = historyData.lastCheckTime || 0;
+                
+                if (lastCheckTime) {
+                    const duration = moment.duration(moment().diff(moment(lastCheckTime)));
+                    return `${duration.hours()}小时${duration.minutes()}分钟`;
+                }
+            }
+            
+            return '未知';
+        } catch (error) {
+            return '未知';
+        }
+    }
+
     async calculateProgress(currentBlock: number | null, subgraphBlock: number | null): Promise<ProgressInfo | null> {
         if (!currentBlock || !subgraphBlock) return null;
         
@@ -257,6 +349,9 @@ class UniswapMonitor {
         // 获取磁盘空间信息
         const diskSpace = await this.getDiskSpace();
         
+        // 获取子图健康状态
+        const subgraphHealth = await this.getSubgraphHealth();
+        
         const report: MonitorReport = {
             timestamp: moment().format('YYYY-MM-DD HH:mm:ss'),
             currentBlock,
@@ -275,7 +370,8 @@ class UniswapMonitor {
                     count: parseInt(count || '0') || 0 
                 };
             }),
-            diskSpace
+            diskSpace,
+            subgraphHealth
         };
         
         const reportFile = path.join(this.reportPath, `report-${moment().format('YYYY-MM-DD-HH-mm')}.json`);
@@ -345,6 +441,31 @@ class UniswapMonitor {
         
         reportText += `\n🐳 Docker 状态:\n`;
         reportText += dockerStatus;
+        
+        // 添加子图健康状态信息
+        reportText += `\n🏥 子图健康状态:\n`;
+        const health = report.subgraphHealth;
+        const healthIcon = health.isHealthy ? '🟢' : '🔴';
+        reportText += `  ${healthIcon} 健康状态: ${health.isHealthy ? '正常' : '异常'}\n`;
+        
+        if (health.isStuck) {
+            reportText += `  ⚠️ 扫描卡住: 是 (${health.stuckDuration})\n`;
+        }
+        
+        if (health.retryCount > 0) {
+            reportText += `  🔄 重试次数: ${health.retryCount}\n`;
+        }
+        
+        if (health.lastErrorTime) {
+            reportText += `  ⏰ 最后错误时间: ${health.lastErrorTime}\n`;
+        }
+        
+        if (health.errors.length > 0) {
+            reportText += `  ❌ 错误信息:\n`;
+            health.errors.forEach(error => {
+                reportText += `    ${error}\n`;
+            });
+        }
         
         return reportText;
     }

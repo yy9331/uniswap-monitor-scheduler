@@ -116,6 +116,15 @@ export interface MonitorReport {
     project: ProjectSpaceInfo | null;
     warnings: string[];
   };
+  // 新增子图健康状态信息
+  subgraphHealth: {
+    isHealthy: boolean;
+    errors: string[];
+    lastErrorTime: string | null;
+    retryCount: number;
+    isStuck: boolean;
+    stuckDuration: string | null;
+  };
 }
 
 // 数据库统计项接口
@@ -136,4 +145,14 @@ export interface ProgressInfo {
   scannedBlocks: number;
   progress: number;
   remainingBlocks: number;
+}
+
+// 子图健康状态接口
+export interface SubgraphHealthInfo {
+  isHealthy: boolean;
+  errors: string[];
+  lastErrorTime: string | null;
+  retryCount: number;
+  isStuck: boolean;
+  stuckDuration: string | null;
 } 
