@@ -17,10 +17,12 @@
     "config:timezone": "ts-node src/config-helper.ts timezone",
     "config:timeout": "ts-node src/config-helper.ts timeout",
     "config:retries": "ts-node src/config-helper.ts retries",
+    "config:shutdown": "ts-node src/config-helper.ts shutdown",
     "config:disk-enabled": "ts-node src/config-helper.ts disk-enabled",
     "config:disk-warning": "ts-node src/config-helper.ts disk-warning",
     "config:disk-critical": "ts-node src/config-helper.ts disk-critical",
     "clean": "rm -rf dist",
+    "clean-reports": "./clean-reports.sh",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {

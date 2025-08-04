@@ -9,12 +9,20 @@ class Scheduler {
     private monitor: UniswapMonitor;
     private startDate: moment.Moment;
     private endDate: moment.Moment;
+    private shutdownDate: moment.Moment | null;
     private isRunning: boolean = false;
 
     constructor() {
         this.monitor = new UniswapMonitor();
         this.startDate = moment();
         this.endDate = moment().add(config.MONITOR_DAYS, 'days');
+        
+        // 设置项目下线时间
+        if (config.PROJECT_SHUTDOWN_DAYS > 0) {
+            this.shutdownDate = moment().add(config.PROJECT_SHUTDOWN_DAYS, 'days');
+        } else {
+            this.shutdownDate = null; // 0表示一直运行
+        }
     }
 
     async log(message: string): Promise<void> {
@@ -32,6 +40,13 @@ class Scheduler {
         await this.log(`监控开始时间: ${this.startDate.format('YYYY-MM-DD HH:mm:ss')}`);
         await this.log(`监控结束时间: ${this.endDate.format('YYYY-MM-DD HH:mm:ss')}`);
         await this.log(`监控周期: ${config.MONITOR_DAYS}天`);
+        
+        if (this.shutdownDate) {
+            await this.log(`项目下线时间: ${this.shutdownDate.format('YYYY-MM-DD HH:mm:ss')} (${config.PROJECT_SHUTDOWN_DAYS}天后自动停止)`);
+        } else {
+            await this.log(`项目下线时间: 永不停止 (PROJECT_SHUTDOWN_DAYS=0)`);
+        }
+        
         await this.log(`定时任务: ${config.CRON_SCHEDULE} 执行监控`);
         
         // 设置定时任务
@@ -51,6 +66,12 @@ class Scheduler {
                 // 检查是否超过监控周期
                 if (moment().isAfter(this.endDate)) {
                     await this.log(`监控周期已结束 (${config.MONITOR_DAYS}天)，停止调度器`);
+                    process.exit(0);
+                }
+                
+                // 检查是否到达项目下线时间
+                if (this.shutdownDate && moment().isAfter(this.shutdownDate)) {
+                    await this.log(`项目下线时间已到 (${config.PROJECT_SHUTDOWN_DAYS}天)，自动停止项目`);
                     process.exit(0);
                 }
             } catch (error) {

@@ -28,6 +28,7 @@ function log(message: string, color: keyof typeof colors = 'reset'): void {
 function showConfig(): void {
     log('\n=== Uniswap 监控调度器配置 ===', 'cyan');
     log(`监控天数: ${config.MONITOR_DAYS} 天`, 'green');
+    log(`项目下线时间: ${config.PROJECT_SHUTDOWN_DAYS === 0 ? '永不停止' : config.PROJECT_SHUTDOWN_DAYS + '天后自动停止'}`, 'green');
     log(`定时任务: ${config.CRON_SCHEDULE}`, 'green');
     log(`时区: ${config.TIMEZONE}`, 'green');
     log(`子图路径: ${config.SUBGRAPH_PATH}`, 'green');
@@ -108,6 +109,10 @@ function showHelp(): void {
     log('修改重试次数:', 'yellow');
     log('  npm run config:retries 5', 'green');
     log('', 'reset');
+    log('修改项目下线时间:', 'yellow');
+    log('  npm run config:shutdown 0    # 永不停止', 'green');
+    log('  npm run config:shutdown 30   # 30天后停止', 'green');
+    log('', 'reset');
     log('磁盘空间监控配置:', 'yellow');
     log('  npm run config:disk-enabled true', 'green');
     log('  npm run config:disk-warning 85', 'green');
@@ -115,6 +120,7 @@ function showHelp(): void {
     log('', 'reset');
     log('可用的配置项:', 'yellow');
     log('  days      - 监控天数', 'green');
+    log('  shutdown  - 项目下线时间(0=永不停止, >0=指定天数后停止)', 'green');
     log('  schedule  - 定时任务表达式', 'green');
     log('  timezone  - 时区设置', 'green');
     log('  timeout   - 请求超时时间(毫秒)', 'green');
@@ -162,6 +168,9 @@ async function main(): Promise<void> {
             break;
         case 'retries':
             updateConfig('MAX_RETRIES', parseInt(value));
+            break;
+        case 'shutdown':
+            updateConfig('PROJECT_SHUTDOWN_DAYS', parseInt(value));
             break;
         case 'disk-enabled':
             updateDiskMonitoring('enabled', value === 'true');

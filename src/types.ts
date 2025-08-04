@@ -3,6 +3,9 @@ export interface Config {
   // 监控周期设置
   MONITOR_DAYS: number;
   
+  // 项目下线时间设置 (0表示一直运行，>0表示运行指定天数后自动停止)
+  PROJECT_SHUTDOWN_DAYS: number;
+  
   // 定时任务设置
   CRON_SCHEDULE: string;
   TIMEZONE: string;

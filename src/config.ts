@@ -9,6 +9,9 @@ const config: Config = {
     // 监控周期设置
     MONITOR_DAYS: 10,                    // 监控天数 (修改这个值来改变监控周期)
     
+    // 项目下线时间设置
+    PROJECT_SHUTDOWN_DAYS: 0,           // 项目运行天数 (0=一直运行, >0=运行指定天数后自动停止)
+    
     // 定时任务设置
     CRON_SCHEDULE: '0 7 * * *',         // 每天早上 7:00 执行
     TIMEZONE: 'Asia/Shanghai',           // 时区设置
@@ -18,7 +21,7 @@ const config: Config = {
     GRAPHQL_ENDPOINT: 'http://localhost:8000/subgraphs/name/uni-swap-v2-monitor',
     
     // 以太坊设置
-    ETHEREUM_RPC: 'https://eth.llamarpc.com',
+    ETHEREUM_RPC: 'https://rpc.ankr.com/eth',
     UNISWAP_V2_START_BLOCK: 10000835,   // Uniswap V2 起始区块
     
     // 数据库设置
