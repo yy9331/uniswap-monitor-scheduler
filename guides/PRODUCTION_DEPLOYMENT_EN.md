@@ -10,7 +10,7 @@
 |--------|----------|------------|---------------|----------------|
 | `./start.sh start background` | **Production Environment** | Background running, process management, log recording | Requires script file | ⭐⭐⭐⭐⭐ |
 | `npm run start` | Development debugging | Simple and direct, real-time logs | Foreground running, stops when terminal closes | ⭐⭐⭐ |
-| `./deploy.sh` | Initial deployment | Complete deployment process | One-time script, not suitable for daily running | ⭐⭐ |
+| `./setup-deployment.sh` | Initial deployment | Complete deployment process | One-time script, not suitable for daily running | ⭐⭐ |
 
 ## 🚀 Recommended Solution: Using Start Script
 
@@ -18,7 +18,7 @@
 
 ```bash
 # 1. Initial deployment
-./deploy.sh
+./setup-deployment.sh
 
 # 2. After deployment, use start script for management
 ./start.sh start background
@@ -157,7 +157,7 @@ npm run start
 Ctrl+C
 ```
 
-### 3. `./deploy.sh` (For Deployment)
+### 3. `./setup-deployment.sh` (For Deployment)
 
 **Advantages:**
 - Complete deployment process
@@ -178,7 +178,7 @@ Ctrl+C
 **Command Examples:**
 ```bash
 # Run deployment script
-./deploy.sh
+./setup-deployment.sh
 ```
 
 ## 🔧 Detailed Deployment Process
@@ -191,7 +191,7 @@ git clone <repository-url>
 cd uniswap-monitor-scheduler
 
 # 2. Run deployment script
-./deploy.sh
+./setup-deployment.sh
 
 # 3. After deployment, start service
 ./start.sh start background
@@ -343,7 +343,7 @@ sudo chown -R uniswap-monitor:uniswap-monitor /path/to/uniswap-monitor-scheduler
 
 ```bash
 # 1. Initial deployment
-./deploy.sh
+./setup-deployment.sh
 
 # 2. Daily management using start script
 ./start.sh start background    # Start
@@ -367,4 +367,4 @@ This ensures service stability while providing complete management functionality
 
 ---
 
-**Summary: For production environment, recommend using `./start.sh start background` or PM2 management, avoid using `npm run start` and `./deploy.sh` for daily operation.** 
+**Summary: For production environment, recommend using `./start.sh start background` or PM2 management, avoid using `npm run start` and `./setup-deployment.sh` for daily operation.** 

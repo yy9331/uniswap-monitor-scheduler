@@ -47,7 +47,7 @@ uniswap-monitor-scheduler/
 ├── package.json           # 项目配置
 ├── tsconfig.json          # TypeScript 配置
 ├── start.sh               # 启动脚本
-├── deploy.sh              # 快速部署脚本
+├── setup-deployment.sh    # 一次性部署脚本
 ├── README.md              # 英文文档
 ├── README.zh-CN.md        # 中文文档
 └── LICENSE                # MIT 许可证
@@ -61,7 +61,7 @@ uniswap-monitor-scheduler/
 # 克隆项目并运行部署脚本
 git clone <your-repository-url>
 cd uniswap-monitor-scheduler
-./deploy.sh
+./setup-deployment.sh
 ```
 
 ### 2. 手动安装
@@ -310,7 +310,7 @@ sudo usermod -aG docker $USER
 # 3. 克隆并部署
 git clone <your-repository-url>
 cd uniswap-monitor-scheduler
-./deploy.sh
+./setup-deployment.sh
 ```
 
 ### 系统服务配置 (可选)

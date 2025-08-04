@@ -47,7 +47,7 @@ uniswap-monitor-scheduler/
 ├── package.json           # Project configuration
 ├── tsconfig.json          # TypeScript configuration
 ├── start.sh               # Startup script
-├── deploy.sh              # Quick deployment script
+├── setup-deployment.sh    # One-time deployment script
 ├── README.md              # English documentation
 ├── README.zh-CN.md        # Chinese documentation
 └── LICENSE                # MIT License
@@ -61,7 +61,7 @@ uniswap-monitor-scheduler/
 # Clone the project and run the deployment script
 git clone <your-repository-url>
 cd uniswap-monitor-scheduler
-./deploy.sh
+./setup-deployment.sh
 ```
 
 ### 2. Manual Installation
@@ -310,7 +310,7 @@ sudo usermod -aG docker $USER
 # 3. Clone and deploy
 git clone <your-repository-url>
 cd uniswap-monitor-scheduler
-./deploy.sh
+./setup-deployment.sh
 ```
 
 ### System Service Configuration (Optional)

@@ -20,7 +20,7 @@
 
 ```bash
 # 1. 首次部署
-./deploy.sh
+./setup-deployment.sh
 
 # 2. 启动服务
 ./start.sh start background
@@ -78,7 +78,7 @@ pm2 restart uniswap-monitor
 ### 核心文件
 
 - **`index.ts`** - 主程序文件，运行监控调度器
-- **`deploy.sh`** - 部署脚本，用于首次部署
+- **`setup-deployment.sh`** - 一次性部署脚本，用于首次部署
 - **`start.sh`** - 启动脚本，用于日常管理
 
 ### 配置文件
@@ -100,11 +100,11 @@ pm2 restart uniswap-monitor
 - `./start.sh start background` - 简单可靠的后台运行
 - PM2 管理 - 功能更完善，适合重要生产环境
 
-### Q: `deploy.sh` 和 `start.sh` 有什么区别？
+### Q: `setup-deployment.sh` 和 `start.sh` 有什么区别？
 
 **A: 职责不同**
 
-- `deploy.sh` - 一次性部署脚本，用于安装和配置
+- `setup-deployment.sh` - 一次性部署脚本，用于安装和配置
 - `start.sh` - 日常管理脚本，用于启动、停止、重启服务
 
 ### Q: 如何查看服务状态？

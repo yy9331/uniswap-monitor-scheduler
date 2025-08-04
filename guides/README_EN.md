@@ -20,7 +20,7 @@
 
 ```bash
 # 1. Initial deployment
-./deploy.sh
+./setup-deployment.sh
 
 # 2. Start service
 ./start.sh start background
@@ -78,7 +78,7 @@ pm2 restart uniswap-monitor
 ### Core Files
 
 - **`index.ts`** - Main program file, runs monitoring scheduler
-- **`deploy.sh`** - Deployment script, for initial deployment
+- **`setup-deployment.sh`** - One-time deployment script, for initial deployment
 - **`start.sh`** - Start script, for daily management
 
 ### Configuration Files
@@ -100,11 +100,11 @@ pm2 restart uniswap-monitor
 - `./start.sh start background` - Simple and reliable background running
 - PM2 management - More comprehensive features, suitable for important production environments
 
-### Q: What's the difference between `deploy.sh` and `start.sh`?
+### Q: What's the difference between `setup-deployment.sh` and `start.sh`?
 
 **A: Different responsibilities**
 
-- `deploy.sh` - One-time deployment script, for installation and configuration
+- `setup-deployment.sh` - One-time deployment script, for installation and configuration
 - `start.sh` - Daily management script, for starting, stopping, restarting services
 
 ### Q: How to check service status?

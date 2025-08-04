@@ -10,7 +10,7 @@
 |------|----------|------|------|----------|
 | `./start.sh start background` | **生产环境** | 后台运行、进程管理、日志记录 | 需要脚本文件 | ⭐⭐⭐⭐⭐ |
 | `npm run start` | 开发调试 | 简单直接、实时日志 | 前台运行、终端关闭会停止 | ⭐⭐⭐ |
-| `./deploy.sh` | 首次部署 | 完整部署流程 | 一次性脚本、不适合日常运行 | ⭐⭐ |
+| `./setup-deployment.sh` | 首次部署 | 完整部署流程 | 一次性脚本、不适合日常运行 | ⭐⭐ |
 
 ## 🚀 推荐方案：使用启动脚本
 
@@ -18,7 +18,7 @@
 
 ```bash
 # 1. 首次部署
-./deploy.sh
+./setup-deployment.sh
 
 # 2. 部署完成后，使用启动脚本管理
 ./start.sh start background
@@ -157,7 +157,7 @@ npm run start
 Ctrl+C
 ```
 
-### 3. `./deploy.sh` (部署用)
+### 3. `./setup-deployment.sh` (部署用)
 
 **优点：**
 - 完整的部署流程
@@ -178,7 +178,7 @@ Ctrl+C
 **命令示例：**
 ```bash
 # 运行部署脚本
-./deploy.sh
+./setup-deployment.sh
 ```
 
 ## 🔧 部署流程详解
@@ -191,7 +191,7 @@ git clone <repository-url>
 cd uniswap-monitor-scheduler
 
 # 2. 运行部署脚本
-./deploy.sh
+./setup-deployment.sh
 
 # 3. 部署完成后，启动服务
 ./start.sh start background
@@ -343,7 +343,7 @@ sudo chown -R uniswap-monitor:uniswap-monitor /path/to/uniswap-monitor-scheduler
 
 ```bash
 # 1. 首次部署
-./deploy.sh
+./setup-deployment.sh
 
 # 2. 日常管理使用启动脚本
 ./start.sh start background    # 启动
@@ -367,4 +367,4 @@ pm2 restart uniswap-monitor
 
 ---
 
-**总结：生产环境推荐使用 `./start.sh start background` 或 PM2 管理，避免使用 `npm run start` 和 `./deploy.sh` 进行日常运行。** 
+**总结：生产环境推荐使用 `./start.sh start background` 或 PM2 管理，避免使用 `npm run start` 和 `./setup-deployment.sh` 进行日常运行。** 
