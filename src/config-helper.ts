@@ -36,6 +36,14 @@ function showConfig(): void {
     log(`数据库容器: ${config.POSTGRES_CONTAINER}`, 'green');
     log(`请求超时: ${config.REQUEST_TIMEOUT}ms`, 'green');
     log(`最大重试: ${config.MAX_RETRIES}次`, 'green');
+    
+    // 磁盘空间监控配置
+    log(`\n💽 磁盘空间监控:`, 'cyan');
+    log(`  启用状态: ${config.DISK_MONITORING.enabled ? '启用' : '禁用'}`, 'green');
+    log(`  警告阈值: ${config.DISK_MONITORING.warning_threshold}%`, 'green');
+    log(`  严重阈值: ${config.DISK_MONITORING.critical_threshold}%`, 'green');
+    log(`  监控路径: ${config.DISK_MONITORING.check_paths.join(', ')}`, 'green');
+    
     log('================================\n', 'cyan');
 }
 
@@ -59,6 +67,27 @@ function updateConfig(key: string, value: string | number): void {
     }
 }
 
+function updateDiskMonitoring(key: string, value: string | number | boolean): void {
+    const configPath = path.join(__dirname, 'config.ts');
+    
+    try {
+        let configContent = fs.readFileSync(configPath, 'utf8');
+        
+        // 更新磁盘监控配置
+        const regex = new RegExp(`(${key}:\\s*)[^,]+`, 'g');
+        const newValue = typeof value === 'string' ? `'${value}'` : value;
+        configContent = configContent.replace(regex, `$1${newValue}`);
+        
+        fs.writeFileSync(configPath, configContent);
+        
+        log(`✅ 磁盘监控配置已更新: ${key} = ${value}`, 'green');
+        log('请重启调度器以应用新配置: ./start.sh restart', 'yellow');
+        
+    } catch (error) {
+        log(`❌ 更新磁盘监控配置失败: ${error instanceof Error ? error.message : 'Unknown error'}`, 'red');
+    }
+}
+
 function showHelp(): void {
     log('\n=== 配置助手使用说明 ===', 'cyan');
     log('查看当前配置:', 'yellow');
@@ -73,12 +102,26 @@ function showHelp(): void {
     log('修改时区:', 'yellow');
     log('  npm run config:timezone "America/New_York"', 'green');
     log('', 'reset');
+    log('修改超时时间:', 'yellow');
+    log('  npm run config:timeout 15000', 'green');
+    log('', 'reset');
+    log('修改重试次数:', 'yellow');
+    log('  npm run config:retries 5', 'green');
+    log('', 'reset');
+    log('磁盘空间监控配置:', 'yellow');
+    log('  npm run config:disk-enabled true', 'green');
+    log('  npm run config:disk-warning 85', 'green');
+    log('  npm run config:disk-critical 95', 'green');
+    log('', 'reset');
     log('可用的配置项:', 'yellow');
     log('  days      - 监控天数', 'green');
     log('  schedule  - 定时任务表达式', 'green');
     log('  timezone  - 时区设置', 'green');
     log('  timeout   - 请求超时时间(毫秒)', 'green');
     log('  retries   - 最大重试次数', 'green');
+    log('  disk-enabled   - 启用磁盘空间监控', 'green');
+    log('  disk-warning   - 磁盘警告阈值(%)', 'green');
+    log('  disk-critical  - 磁盘严重阈值(%)', 'green');
     log('================================\n', 'cyan');
 }
 
@@ -119,6 +162,15 @@ async function main(): Promise<void> {
             break;
         case 'retries':
             updateConfig('MAX_RETRIES', parseInt(value));
+            break;
+        case 'disk-enabled':
+            updateDiskMonitoring('enabled', value === 'true');
+            break;
+        case 'disk-warning':
+            updateDiskMonitoring('warning_threshold', parseInt(value));
+            break;
+        case 'disk-critical':
+            updateDiskMonitoring('critical_threshold', parseInt(value));
             break;
         default:
             log(`❌ 未知的配置项: ${action}`, 'red');

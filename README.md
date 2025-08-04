@@ -21,6 +21,7 @@ An automated monitoring system for Uniswap V2 subgraph indexing progress with sc
 - ⏰ **Auto-Stop**: Automatic shutdown after configured monitoring period
 - 🔒 **Type Safety**: Full TypeScript support with strict type checking
 - 🚀 **Easy Deployment**: One-click deployment script for production
+- 💽 **Disk Space Monitoring**: Monitor server disk space and project usage with early warnings
 
 ## 🏗️ Project Structure
 
@@ -97,6 +98,14 @@ const config: Config = {
     SUBGRAPH_PATH: '/path/to/subgraph',  // Subgraph path
     GRAPHQL_ENDPOINT: 'http://...',      // GraphQL endpoint
     ETHEREUM_RPC: 'https://...',         // Ethereum RPC
+    
+    // Disk space monitoring
+    DISK_MONITORING: {
+        enabled: true,                    // Enable disk space monitoring
+        warning_threshold: 80,            // Warning threshold (80%)
+        critical_threshold: 90,           // Critical threshold (90%)
+        check_paths: ['/', '/home', '/var', '/tmp']  // Paths to monitor
+    }
     // ... more configuration items
 };
 ```
@@ -123,6 +132,11 @@ npm run config:timeout 15000
 
 # Modify retries
 npm run config:retries 5
+
+# Disk space monitoring configuration
+npm run config:disk-enabled true
+npm run config:disk-warning 85
+npm run config:disk-critical 95
 ```
 
 ## 🛠️ Management Commands
@@ -176,6 +190,13 @@ npm run monitor      # Run monitor in production mode
 - Graph node health status
 - Network connection status
 
+### 💽 Disk Space Monitoring
+- **System Disk Space**: Monitor all mounted filesystems
+- **Project Usage**: Track project directory space usage
+- **Database Size**: Monitor PostgreSQL database growth
+- **Early Warnings**: Alert when disk usage exceeds thresholds
+- **Space Breakdown**: Detailed breakdown of space usage by component
+
 ## 📋 Report Formats
 
 ### JSON Report
@@ -195,7 +216,29 @@ npm run monitor      # Run monitor in production mode
     {"table": "chain1.blocks", "count": 2840},
     {"table": "sgd1.pair", "count": 0},
     {"table": "sgd1.swap", "count": 0}
-  ]
+  ],
+  "diskSpace": {
+    "system": [
+      {
+        "filesystem": "/dev/sda1",
+        "size": "49G",
+        "used": "8.0G",
+        "available": "41G",
+        "used_percentage": 17,
+        "mountpoint": "/",
+        "status": "normal"
+      }
+    ],
+    "project": {
+      "project_path": "/path/to/project",
+      "total_size": "41M",
+      "database_size": "1.3G",
+      "logs_size": "20K",
+      "reports_size": "92K",
+      "other_size": "41M"
+    },
+    "warnings": []
+  }
 }
 ```
 
@@ -218,6 +261,20 @@ Generated: 2024-08-03 07:00:00
   chain1.blocks: 2,840 records
   sgd1.pair: 0 records
   sgd1.swap: 0 records
+
+💽 Disk Space Monitoring:
+  System Disk Space:
+    🟢 /: 8.0G/49G (17%)
+    🟢 /home: 2.1G/49G (4%)
+  Project Space Usage:
+    Total Size: 41M
+    Database: 1.3G
+    Logs: 20K
+    Reports: 92K
+    Other: 41M
+
+🐳 Docker Status:
+[Container status information]
 ```
 
 ## 🚀 Server Deployment
@@ -351,6 +408,9 @@ src/
 | `ETHEREUM_RPC` | Ethereum RPC | `https://eth.llamarpc.com` |
 | `REQUEST_TIMEOUT` | Request timeout | 10000ms |
 | `MAX_RETRIES` | Maximum retry attempts | 3 |
+| `DISK_MONITORING.enabled` | Enable disk space monitoring | true |
+| `DISK_MONITORING.warning_threshold` | Disk warning threshold | 80% |
+| `DISK_MONITORING.critical_threshold` | Disk critical threshold | 90% |
 
 ## 🔧 Troubleshooting
 
@@ -382,6 +442,16 @@ src/
    
    # Rebuild project
    npm run build
+   ```
+
+4. **Disk Space Warnings**
+   ```bash
+   # Check disk space manually
+   df -h
+   
+   # Clean up old logs and reports
+   find logs/ -name "*.log" -mtime +30 -delete
+   find reports/ -name "*.json" -mtime +30 -delete
    ```
 
 ### Debug Mode
@@ -416,6 +486,10 @@ npm run config:schedule "0 */6 * * *"  # Execute every 6 hours
 
 # Adjust timeout time
 # Edit REQUEST_TIMEOUT value in src/config.ts
+
+# Adjust disk space monitoring thresholds
+npm run config:disk-warning 85  # Set warning threshold to 85%
+npm run config:disk-critical 95 # Set critical threshold to 95%
 ```
 
 ## 🔒 Security Recommendations
@@ -455,6 +529,11 @@ Import monitoring data into tools like Grafana for visual display.
 
 ### Web Interface
 Add Express server to provide web interface for viewing monitoring results.
+
+### Advanced Disk Monitoring
+- Set up automated disk cleanup scripts
+- Configure disk space alerts via email/SMS
+- Implement disk usage trend analysis
 
 ## 📄 License
 

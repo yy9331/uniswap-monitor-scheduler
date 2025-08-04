@@ -42,6 +42,19 @@ const config: Config = {
     MAX_RETRIES: 3,                      // 最大重试次数
     RETRY_DELAY: 1000,                   // 重试延迟 (毫秒)
     
+    // 磁盘空间监控设置
+    DISK_MONITORING: {
+        enabled: true,                    // 启用磁盘空间监控
+        warning_threshold: 80,            // 警告阈值 (80%)
+        critical_threshold: 90,           // 严重阈值 (90%)
+        check_paths: [                    // 需要检查的路径
+            '/',                          // 根目录
+            '/home',                      // 用户目录
+            '/var',                       // 系统变量目录
+            '/tmp'                        // 临时目录
+        ]
+    },
+    
     // 通知设置 (预留)
     NOTIFICATIONS: {
         enabled: false,

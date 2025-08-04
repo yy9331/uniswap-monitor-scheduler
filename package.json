@@ -17,6 +17,9 @@
     "config:timezone": "ts-node src/config-helper.ts timezone",
     "config:timeout": "ts-node src/config-helper.ts timeout",
     "config:retries": "ts-node src/config-helper.ts retries",
+    "config:disk-enabled": "ts-node src/config-helper.ts disk-enabled",
+    "config:disk-warning": "ts-node src/config-helper.ts disk-warning",
+    "config:disk-critical": "ts-node src/config-helper.ts disk-critical",
     "clean": "rm -rf dist",
     "type-check": "tsc --noEmit"
   },
@@ -40,7 +43,8 @@
     "subgraph",
     "monitor",
     "scheduler",
-    "typescript"
+    "typescript",
+    "disk-space"
   ],
   "author": "Your Name",
   "license": "MIT"

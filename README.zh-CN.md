@@ -21,6 +21,7 @@
 - ⏰ **自动停止**: 10天后自动停止监控
 - 🔒 **类型安全**: 完整的 TypeScript 支持，严格类型检查
 - 🚀 **一键部署**: 生产环境一键部署脚本
+- 💽 **磁盘空间监控**: 监控服务器磁盘空间和项目使用情况，提供早期预警
 
 ## 🏗️ 项目结构
 
@@ -97,6 +98,14 @@ const config: Config = {
     SUBGRAPH_PATH: '/path/to/subgraph',  // 子图路径
     GRAPHQL_ENDPOINT: 'http://...',      // GraphQL端点
     ETHEREUM_RPC: 'https://...',         // 以太坊RPC
+    
+    // 磁盘空间监控
+    DISK_MONITORING: {
+        enabled: true,                    // 启用磁盘空间监控
+        warning_threshold: 80,            // 警告阈值 (80%)
+        critical_threshold: 90,           // 严重阈值 (90%)
+        check_paths: ['/', '/home', '/var', '/tmp']  // 监控路径
+    }
     // ... 更多配置项
 };
 ```
@@ -123,6 +132,11 @@ npm run config:timeout 15000
 
 # 修改重试次数
 npm run config:retries 5
+
+# 磁盘空间监控配置
+npm run config:disk-enabled true
+npm run config:disk-warning 85
+npm run config:disk-critical 95
 ```
 
 ## 🛠️ 管理命令
@@ -176,6 +190,13 @@ npm run monitor      # 生产模式监控
 - Graph Node 健康状态
 - 网络连接状态
 
+### 💽 磁盘空间监控
+- **系统磁盘空间**: 监控所有挂载的文件系统
+- **项目使用情况**: 跟踪项目目录空间使用
+- **数据库大小**: 监控 PostgreSQL 数据库增长
+- **早期预警**: 当磁盘使用率超过阈值时发出警报
+- **空间分解**: 按组件详细分解空间使用情况
+
 ## 📋 报告格式
 
 ### JSON 报告
@@ -195,7 +216,29 @@ npm run monitor      # 生产模式监控
     {"table": "chain1.blocks", "count": 2840},
     {"table": "sgd1.pair", "count": 0},
     {"table": "sgd1.swap", "count": 0}
-  ]
+  ],
+  "diskSpace": {
+    "system": [
+      {
+        "filesystem": "/dev/sda1",
+        "size": "49G",
+        "used": "8.0G",
+        "available": "41G",
+        "used_percentage": 17,
+        "mountpoint": "/",
+        "status": "normal"
+      }
+    ],
+    "project": {
+      "project_path": "/path/to/project",
+      "total_size": "41M",
+      "database_size": "1.3G",
+      "logs_size": "20K",
+      "reports_size": "92K",
+      "other_size": "41M"
+    },
+    "warnings": []
+  }
 }
 ```
 
@@ -218,6 +261,20 @@ npm run monitor      # 生产模式监控
   chain1.blocks: 2,840 条记录
   sgd1.pair: 0 条记录
   sgd1.swap: 0 条记录
+
+💽 磁盘空间监控:
+  系统磁盘空间:
+    🟢 /: 8.0G/49G (17%)
+    🟢 /home: 2.1G/49G (4%)
+  项目空间使用:
+    总大小: 41M
+    数据库: 1.3G
+    日志: 20K
+    报告: 92K
+    其他: 41M
+
+🐳 Docker 状态:
+[容器状态信息]
 ```
 
 ## 🚀 服务器部署
@@ -351,6 +408,9 @@ src/
 | `ETHEREUM_RPC` | 以太坊 RPC | `https://eth.llamarpc.com` |
 | `REQUEST_TIMEOUT` | 请求超时 | 10000ms |
 | `MAX_RETRIES` | 最大重试次数 | 3 |
+| `DISK_MONITORING.enabled` | 启用磁盘空间监控 | true |
+| `DISK_MONITORING.warning_threshold` | 磁盘警告阈值 | 80% |
+| `DISK_MONITORING.critical_threshold` | 磁盘严重阈值 | 90% |
 
 ## 🔧 故障排除
 
@@ -382,6 +442,16 @@ src/
    
    # 重新构建项目
    npm run build
+   ```
+
+4. **磁盘空间警告**
+   ```bash
+   # 手动检查磁盘空间
+   df -h
+   
+   # 清理旧日志和报告
+   find logs/ -name "*.log" -mtime +30 -delete
+   find reports/ -name "*.json" -mtime +30 -delete
    ```
 
 ### 调试模式
@@ -416,6 +486,10 @@ npm run config:schedule "0 */6 * * *"  # 每6小时执行一次
 
 # 调整超时时间
 # 编辑 src/config.ts 中的 REQUEST_TIMEOUT 值
+
+# 调整磁盘空间监控阈值
+npm run config:disk-warning 85  # 设置警告阈值为 85%
+npm run config:disk-critical 95 # 设置严重阈值为 95%
 ```
 
 ## 🔒 安全建议
@@ -455,6 +529,11 @@ sudo chown -R uniswap-monitor:uniswap-monitor /path/to/uniswap-monitor-scheduler
 
 ### Web 界面
 添加 Express 服务器提供 Web 界面查看监控结果。
+
+### 高级磁盘监控
+- 设置自动磁盘清理脚本
+- 配置磁盘空间警报（邮件/SMS）
+- 实现磁盘使用趋势分析
 
 ## 📄 许可证
 

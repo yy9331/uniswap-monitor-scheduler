@@ -36,7 +36,15 @@ export interface Config {
   MAX_RETRIES: number;
   RETRY_DELAY: number;
   
-  // 通知设置
+  // 磁盘空间监控设置
+  DISK_MONITORING: {
+    enabled: boolean;
+    warning_threshold: number;  // 警告阈值 (百分比)
+    critical_threshold: number; // 严重阈值 (百分比)
+    check_paths: string[];      // 需要检查的路径
+  };
+  
+  // 通知设置 (预留)
   NOTIFICATIONS: {
     enabled: boolean;
     email: {
@@ -50,6 +58,33 @@ export interface Config {
       enabled: boolean;
       url: string;
     };
+  };
+}
+
+// 磁盘空间信息接口
+export interface DiskSpaceInfo {
+  filesystem: string;
+  size: string;
+  used: string;
+  available: string;
+  used_percentage: number;
+  mountpoint: string;
+  status: 'normal' | 'warning' | 'critical';
+}
+
+// 项目空间使用信息接口
+export interface ProjectSpaceInfo {
+  project_path: string;
+  total_size: string;
+  database_size: string;
+  logs_size: string;
+  reports_size: string;
+  other_size: string;
+  breakdown: {
+    database: string;
+    logs: string;
+    reports: string;
+    other: string;
   };
 }
 
@@ -74,6 +109,12 @@ export interface MonitorReport {
       name: string;
       status: string;
     }>;
+  };
+  // 新增磁盘空间信息
+  diskSpace: {
+    system: DiskSpaceInfo[];
+    project: ProjectSpaceInfo | null;
+    warnings: string[];
   };
 }
 

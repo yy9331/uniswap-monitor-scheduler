@@ -5,7 +5,7 @@ import moment from 'moment';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import config from './config';
-import { MonitorReport, ProgressInfo } from './types';
+import { MonitorReport, ProgressInfo, DiskSpaceInfo, ProjectSpaceInfo } from './types';
 
 const execAsync = promisify(exec);
 
@@ -123,6 +123,111 @@ class UniswapMonitor {
         }
     }
 
+    async getDiskSpace(): Promise<{ system: DiskSpaceInfo[], project: ProjectSpaceInfo | null, warnings: string[] }> {
+        const warnings: string[] = [];
+        const system: DiskSpaceInfo[] = [];
+        let project: ProjectSpaceInfo | null = null;
+
+        try {
+            // 获取系统磁盘空间信息
+            const { stdout } = await execAsync('df -h');
+            const lines = stdout.trim().split('\n').slice(1); // 跳过标题行
+
+            for (const line of lines) {
+                const parts = line.split(/\s+/);
+                if (parts.length >= 6) {
+                    const filesystem = parts[0] || '';
+                    const size = parts[1] || '';
+                    const used = parts[2] || '';
+                    const available = parts[3] || '';
+                    const usedPercent = parseInt(parts[4]?.replace('%', '') || '0');
+                    const mountpoint = parts[5] || '';
+
+                    // 检查是否在监控路径中
+                    const isMonitored = config.DISK_MONITORING.check_paths.some(checkPath => 
+                        mountpoint === checkPath || mountpoint.startsWith(checkPath + '/')
+                    );
+
+                    if (isMonitored) {
+                        let status: 'normal' | 'warning' | 'critical' = 'normal';
+                        
+                        if (usedPercent >= config.DISK_MONITORING.critical_threshold) {
+                            status = 'critical';
+                            warnings.push(`严重警告: ${mountpoint} 磁盘使用率 ${usedPercent}%`);
+                        } else if (usedPercent >= config.DISK_MONITORING.warning_threshold) {
+                            status = 'warning';
+                            warnings.push(`警告: ${mountpoint} 磁盘使用率 ${usedPercent}%`);
+                        }
+
+                        system.push({
+                            filesystem,
+                            size,
+                            used,
+                            available,
+                            used_percentage: usedPercent,
+                            mountpoint,
+                            status
+                        });
+                    }
+                }
+            }
+
+            // 获取项目空间使用情况
+            project = await this.getProjectSpaceUsage();
+
+            await this.log(`磁盘空间监控完成: 检查了 ${system.length} 个分区，发现 ${warnings.length} 个警告`);
+
+        } catch (error) {
+            await this.log(`获取磁盘空间信息失败: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            warnings.push('磁盘空间监控失败');
+        }
+
+        return { system, project, warnings };
+    }
+
+    async getProjectSpaceUsage(): Promise<ProjectSpaceInfo | null> {
+        try {
+            const projectRoot = path.join(__dirname, '..');
+            const subgraphPath = config.SUBGRAPH_PATH;
+
+            // 获取项目总大小
+            const { stdout: totalSize } = await execAsync(`du -sh "${projectRoot}"`);
+            
+            // 获取数据库大小
+            const { stdout: dbSize } = await execAsync(`du -sh "${subgraphPath}/data/postgres/" 2>/dev/null || echo "0"`);
+            
+            // 获取日志大小
+            const { stdout: logsSize } = await execAsync(`du -sh "${projectRoot}/logs/" 2>/dev/null || echo "0"`);
+            
+            // 获取报告大小
+            const { stdout: reportsSize } = await execAsync(`du -sh "${projectRoot}/reports/" 2>/dev/null || echo "0"`);
+            
+            // 获取其他文件大小 (排除数据库、日志、报告)
+            const { stdout: otherSize } = await execAsync(`
+                du -sh "${projectRoot}" --exclude="${subgraphPath}/data/postgres" --exclude="${projectRoot}/logs" --exclude="${projectRoot}/reports" 2>/dev/null || echo "0"
+            `);
+
+            return {
+                project_path: projectRoot,
+                total_size: totalSize.trim(),
+                database_size: dbSize.trim(),
+                logs_size: logsSize.trim(),
+                reports_size: reportsSize.trim(),
+                other_size: otherSize.trim(),
+                breakdown: {
+                    database: dbSize.trim(),
+                    logs: logsSize.trim(),
+                    reports: reportsSize.trim(),
+                    other: otherSize.trim()
+                }
+            };
+
+        } catch (error) {
+            await this.log(`获取项目空间使用情况失败: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            return null;
+        }
+    }
+
     async calculateProgress(currentBlock: number | null, subgraphBlock: number | null): Promise<ProgressInfo | null> {
         if (!currentBlock || !subgraphBlock) return null;
         
@@ -149,6 +254,9 @@ class UniswapMonitor {
         const dockerStatus = await this.getDockerStatus();
         const progress = await this.calculateProgress(currentBlock, subgraphBlock);
         
+        // 获取磁盘空间信息
+        const diskSpace = await this.getDiskSpace();
+        
         const report: MonitorReport = {
             timestamp: moment().format('YYYY-MM-DD HH:mm:ss'),
             currentBlock,
@@ -166,7 +274,8 @@ class UniswapMonitor {
                     table: table?.trim() || 'unknown', 
                     count: parseInt(count || '0') || 0 
                 };
-            })
+            }),
+            diskSpace
         };
         
         const reportFile = path.join(this.reportPath, `report-${moment().format('YYYY-MM-DD-HH-mm')}.json`);
@@ -205,6 +314,34 @@ class UniswapMonitor {
         report.databaseStats.forEach(stat => {
             reportText += `  ${stat.table}: ${stat.count.toLocaleString()} 条记录\n`;
         });
+        
+        // 添加磁盘空间信息
+        reportText += `\n💽 磁盘空间监控:\n`;
+        
+        if (report.diskSpace.system.length > 0) {
+            reportText += `  系统磁盘空间:\n`;
+            report.diskSpace.system.forEach(disk => {
+                const statusIcon = disk.status === 'critical' ? '🔴' : disk.status === 'warning' ? '🟡' : '🟢';
+                reportText += `    ${statusIcon} ${disk.mountpoint}: ${disk.used}/${disk.size} (${disk.used_percentage}%)\n`;
+            });
+        }
+        
+        if (report.diskSpace.project) {
+            const proj = report.diskSpace.project;
+            reportText += `  项目空间使用:\n`;
+            reportText += `    总大小: ${proj.total_size}\n`;
+            reportText += `    数据库: ${proj.database_size}\n`;
+            reportText += `    日志: ${proj.logs_size}\n`;
+            reportText += `    报告: ${proj.reports_size}\n`;
+            reportText += `    其他: ${proj.other_size}\n`;
+        }
+        
+        if (report.diskSpace.warnings.length > 0) {
+            reportText += `\n⚠️ 磁盘空间警告:\n`;
+            report.diskSpace.warnings.forEach(warning => {
+                reportText += `  ${warning}\n`;
+            });
+        }
         
         reportText += `\n🐳 Docker 状态:\n`;
         reportText += dockerStatus;
