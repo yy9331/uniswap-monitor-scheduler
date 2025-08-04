@@ -56,9 +56,56 @@ build_project() {
     fi
 }
 
+# 检查服务是否已运行
+check_running() {
+    local mode=$1
+    
+    case $mode in
+        "background"|"bg")
+            if [ -f scheduler.pid ]; then
+                local pid=$(cat scheduler.pid)
+                if ps -p $pid > /dev/null 2>&1; then
+                    warn "服务已在后台运行，PID: $pid"
+                    return 0  # 已运行
+                else
+                    warn "发现无效的 PID 文件，清理中..."
+                    rm -f scheduler.pid
+                fi
+            fi
+            
+            # 检查是否有 npm start 进程在运行
+            if pgrep -f "npm start" > /dev/null 2>&1; then
+                warn "发现其他 npm start 进程在运行"
+                pgrep -f "npm start" | xargs ps -o pid,ppid,cmd
+                return 0  # 已运行
+            fi
+            return 1  # 未运行
+            ;;
+        "pm2")
+            if command -v pm2 &> /dev/null; then
+                if pm2 list | grep -q "uniswap-monitor"; then
+                    warn "PM2 服务已在运行"
+                    pm2 status
+                    return 0  # 已运行
+                fi
+            fi
+            return 1  # 未运行
+            ;;
+        *)
+            return 1  # 默认未运行
+            ;;
+    esac
+}
+
 # 启动服务
 start_service() {
     local mode=$1
+    
+    # 检查是否已运行
+    if check_running $mode; then
+        error "服务已在运行，请先停止现有服务: $0 stop $mode"
+        exit 1
+    fi
     
     case $mode in
         "foreground"|"fg")

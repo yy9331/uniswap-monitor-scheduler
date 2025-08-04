@@ -22,12 +22,12 @@ const config: Config = {
     UNISWAP_V2_START_BLOCK: 10000835,   // Uniswap V2 起始区块
     
     // 数据库设置
-    POSTGRES_CONTAINER: 'uni-swap-v2-monitor_postgres_1',
+    POSTGRES_CONTAINER: 'uniswap-v2-monitor-subgraph_postgres_1',
     POSTGRES_USER: 'graph-node',
     POSTGRES_DB: 'graph-node',
     
     // Docker 设置
-    DOCKER_FILTER: 'name=uni-swap-v2-monitor',
+    DOCKER_FILTER: 'name=uniswap-v2-monitor-subgraph',
     
     // 日志设置
     LOG_LEVEL: 'info',

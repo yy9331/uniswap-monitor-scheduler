@@ -108,6 +108,7 @@ pm2 monit
 - Log recording to files
 - Status checking support
 - Restart and stop support
+- **Prevent duplicate startup** - Automatically detect running processes
 
 **Use Cases:**
 - Production environment deployment

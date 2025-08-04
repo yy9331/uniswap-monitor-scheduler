@@ -129,6 +129,21 @@ pm2 restart uniswap-monitor
 - 完整的迁移过程记录在 [TypeScript 迁移指南](TYPESCRIPT_MIGRATION.md)
 - 包含详细的步骤、解决的问题和迁移效果
 
+### Q: 如果执行两次 `./start.sh start background`，会不会重复执行两个相同的任务？
+
+**A: 不会重复执行**
+
+- **自动检测**: 脚本会自动检查是否已有进程在运行
+- **防止重复**: 如果检测到服务已运行，会显示警告并退出
+- **清理机制**: 会自动清理无效的 PID 文件
+- **进程检查**: 支持检查后台进程和 PM2 进程
+
+**示例输出:**
+```bash
+[2025-08-04 03:52:35] WARNING: 服务已在后台运行，PID: 608335
+[2025-08-04 03:52:35] ERROR: 服务已在运行，请先停止现有服务: ./start.sh stop background
+```
+
 ## 📞 获取帮助
 
 - 查看 [生产环境部署指南](PRODUCTION_DEPLOYMENT.md) 获取详细说明

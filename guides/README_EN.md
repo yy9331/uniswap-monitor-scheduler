@@ -129,6 +129,21 @@ pm2 restart uniswap-monitor
 - Complete migration process is documented in [TypeScript Migration Guide](TYPESCRIPT_MIGRATION_EN.md)
 - Includes detailed steps, resolved issues, and migration results
 
+### Q: If I run `./start.sh start background` twice, will it execute two identical tasks?
+
+**A: No duplicate execution**
+
+- **Auto detection**: Script automatically checks if processes are already running
+- **Prevent duplicates**: If service is detected as running, shows warning and exits
+- **Cleanup mechanism**: Automatically cleans up invalid PID files
+- **Process checking**: Supports checking background processes and PM2 processes
+
+**Example output:**
+```bash
+[2025-08-04 03:52:35] WARNING: Service already running in background, PID: 608335
+[2025-08-04 03:52:35] ERROR: Service already running, please stop existing service first: ./start.sh stop background
+```
+
 ## 📞 Get Help
 
 - View [Production Environment Deployment Guide](PRODUCTION_DEPLOYMENT_EN.md) for detailed instructions
