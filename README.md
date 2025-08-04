@@ -9,6 +9,13 @@ An automated monitoring system for Uniswap V2 subgraph indexing progress with sc
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue.svg)](https://www.typescriptlang.org/)
 [![Docker](https://img.shields.io/badge/Docker-Required-blue.svg)](https://docker.com/)
 
+## 📚 Quick Navigation
+
+- **[🚀 Production Deployment Guide](guides/PRODUCTION_DEPLOYMENT.md)** - Best practices for production environment
+- **[📋 Quick Start](#-quick-start)** - Get started quickly
+- **[⚙️ Configuration](#-configuration)** - Configure monitoring parameters
+- **[🛠️ Management](#-management-commands)** - Service management commands
+
 ## ✨ Features
 
 - 🕐 **Scheduled Monitoring**: Automated daily monitoring at 7:00 AM

@@ -1,244 +1,283 @@
 #!/bin/bash
 
 # Uniswap 监控调度器启动脚本
+# 支持多种运行模式：前台、后台、PM2
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-LOG_FILE="$SCRIPT_DIR/scheduler.log"
-PID_FILE="$SCRIPT_DIR/scheduler.pid"
+cd "$SCRIPT_DIR"
 
 # 颜色定义
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # 日志函数
 log() {
-    echo -e "${GREEN}[$(date '+%Y-%m-%d %H:%M:%S')]${NC} $1" | tee -a "$LOG_FILE"
+    echo -e "${GREEN}[$(date '+%Y-%m-%d %H:%M:%S')]${NC} $1"
 }
 
 error() {
-    echo -e "${RED}[$(date '+%Y-%m-%d %H:%M:%S')] ERROR:${NC} $1" | tee -a "$LOG_FILE"
+    echo -e "${RED}[$(date '+%Y-%m-%d %H:%M:%S')] ERROR:${NC} $1"
 }
 
-warning() {
-    echo -e "${YELLOW}[$(date '+%Y-%m-%d %H:%M:%S')] WARNING:${NC} $1" | tee -a "$LOG_FILE"
+warn() {
+    echo -e "${YELLOW}[$(date '+%Y-%m-%d %H:%M:%S')] WARNING:${NC} $1"
 }
 
-# 检查是否已经运行
-check_running() {
-    if [ -f "$PID_FILE" ]; then
-        PID=$(cat "$PID_FILE")
-        if ps -p "$PID" > /dev/null 2>&1; then
-            return 0
-        else
-            rm -f "$PID_FILE"
-        fi
-    fi
-    return 1
+info() {
+    echo -e "${BLUE}[$(date '+%Y-%m-%d %H:%M:%S')] INFO:${NC} $1"
 }
 
-# 启动函数
-start() {
-    log "启动 Uniswap 监控调度器..."
-    
-    if check_running; then
-        error "调度器已经在运行 (PID: $(cat $PID_FILE))"
-        exit 1
-    fi
-    
-    # 检查 Node.js 是否安装
+# 检查依赖
+check_dependencies() {
     if ! command -v node &> /dev/null; then
-        error "Node.js 未安装，请先安装 Node.js"
+        error "Node.js 未安装"
         exit 1
     fi
     
-    # 检查依赖是否安装
-    if [ ! -d "node_modules" ]; then
-        log "安装依赖..."
-        npm install
-    fi
-    
-    # 构建 TypeScript 项目
-    log "构建 TypeScript 项目..."
-    if ! npm run build; then
-        error "TypeScript 构建失败"
+    if ! command -v npm &> /dev/null; then
+        error "npm 未安装"
         exit 1
     fi
     
-    # 启动调度器
-    log "启动监控调度器..."
-    nohup node dist/index.js > "$LOG_FILE" 2>&1 &
-    PID=$!
-    echo $PID > "$PID_FILE"
-    
-    log "调度器已启动 (PID: $PID)"
-    log "日志文件: $LOG_FILE"
-    log "监控周期: 从配置文件读取"
-    log "执行时间: 每天早上 7:00"
+    log "依赖检查通过"
 }
 
-# 停止函数
-stop() {
-    log "停止 Uniswap 监控调度器..."
+# 构建项目
+build_project() {
+    log "构建项目..."
+    if npm run build; then
+        log "项目构建成功"
+    else
+        error "项目构建失败"
+        exit 1
+    fi
+}
+
+# 启动服务
+start_service() {
+    local mode=$1
     
-    if [ -f "$PID_FILE" ]; then
-        PID=$(cat "$PID_FILE")
-        if ps -p "$PID" > /dev/null 2>&1; then
-            kill "$PID"
-            rm -f "$PID_FILE"
-            log "调度器已停止 (PID: $PID)"
+    case $mode in
+        "foreground"|"fg")
+            log "前台模式启动..."
+            npm start
+            ;;
+        "background"|"bg")
+            log "后台模式启动..."
+            nohup npm start > scheduler.log 2>&1 &
+            local pid=$!
+            echo $pid > scheduler.pid
+            log "服务已在后台启动，PID: $pid"
+            log "日志文件: scheduler.log"
+            ;;
+        "pm2")
+            log "PM2 模式启动..."
+            if command -v pm2 &> /dev/null; then
+                pm2 start ecosystem.config.js
+                log "PM2 服务已启动"
+                pm2 status
+            else
+                error "PM2 未安装，请先运行: npm install -g pm2"
+                exit 1
+            fi
+            ;;
+        *)
+            error "未知的运行模式: $mode"
+            echo "可用模式: foreground(fg), background(bg), pm2"
+            exit 1
+            ;;
+    esac
+}
+
+# 停止服务
+stop_service() {
+    local mode=$1
+    
+    case $mode in
+        "background"|"bg")
+            if [ -f scheduler.pid ]; then
+                local pid=$(cat scheduler.pid)
+                if ps -p $pid > /dev/null 2>&1; then
+                    log "停止后台进程 PID: $pid"
+                    kill $pid
+                    rm scheduler.pid
+                else
+                    warn "进程 $pid 不存在"
+                    rm -f scheduler.pid
+                fi
+            else
+                warn "未找到 PID 文件"
+                pkill -f "npm start"
+            fi
+            ;;
+        "pm2")
+            if command -v pm2 &> /dev/null; then
+                log "停止 PM2 服务..."
+                pm2 stop uniswap-monitor
+                pm2 delete uniswap-monitor
+            else
+                error "PM2 未安装"
+            fi
+            ;;
+        *)
+            error "未知的停止模式: $mode"
+            ;;
+    esac
+}
+
+# 查看状态
+show_status() {
+    log "检查服务状态..."
+    
+    # 检查后台进程
+    if [ -f scheduler.pid ]; then
+        local pid=$(cat scheduler.pid)
+        if ps -p $pid > /dev/null 2>&1; then
+            log "后台进程运行中，PID: $pid"
+            ps -p $pid -o pid,ppid,cmd,etime
         else
-            error "进程不存在 (PID: $PID)"
-            rm -f "$PID_FILE"
+            warn "后台进程不存在"
+            rm -f scheduler.pid
+        fi
+    fi
+    
+    # 检查 PM2 进程
+    if command -v pm2 &> /dev/null; then
+        pm2 status
+    fi
+    
+    # 检查日志文件
+    if [ -f scheduler.log ]; then
+        log "最新日志 (最后10行):"
+        tail -10 scheduler.log
+    fi
+}
+
+# 查看日志
+show_logs() {
+    local lines=${1:-50}
+    
+    if [ -f scheduler.log ]; then
+        log "显示最后 $lines 行日志:"
+        tail -n $lines scheduler.log
+    else
+        warn "未找到日志文件"
+    fi
+}
+
+# 查看报告
+show_reports() {
+    if [ -d reports ]; then
+        log "最新报告文件:"
+        ls -la reports/ | head -10
+        echo ""
+        log "最新报告内容:"
+        if [ -f reports/report-$(date +%Y-%m-%d)*.txt ]; then
+            ls -t reports/report-$(date +%Y-%m-%d)*.txt | head -1 | xargs cat
+        else
+            warn "今天没有生成报告"
         fi
     else
-        error "PID 文件不存在"
+        warn "报告目录不存在"
     fi
 }
 
-# 状态函数
-status() {
-    if check_running; then
-        PID=$(cat "$PID_FILE")
-        log "调度器正在运行 (PID: $PID)"
-        
-        # 显示最近的日志
-        echo ""
-        log "最近的日志:"
-        tail -n 10 "$LOG_FILE" 2>/dev/null || echo "暂无日志"
-        
-        # 显示进程信息
-        echo ""
-        log "进程信息:"
-        ps -p "$PID" -o pid,ppid,cmd,etime 2>/dev/null || echo "进程信息获取失败"
-    else
-        log "调度器未运行"
-    fi
+# 开发模式
+dev_mode() {
+    log "开发模式启动..."
+    npm run dev
 }
 
-# 重启函数
-restart() {
-    log "重启 Uniswap 监控调度器..."
-    stop
-    sleep 2
-    start
+# 测试模式
+test_mode() {
+    log "测试模式启动..."
+    npm run test:dev
 }
 
-# 日志函数
-logs() {
-    if [ -f "$LOG_FILE" ]; then
-        log "显示调度器日志:"
-        tail -f "$LOG_FILE"
-    else
-        error "日志文件不存在: $LOG_FILE"
-    fi
-}
-
-# 报告函数
-reports() {
-    REPORTS_DIR="$SCRIPT_DIR/reports"
-    if [ -d "$REPORTS_DIR" ]; then
-        log "最近的监控报告:"
-        ls -la "$REPORTS_DIR" | head -10
-    else
-        error "报告目录不存在: $REPORTS_DIR"
-    fi
-}
-
-# 开发模式启动
-dev() {
-    log "启动开发模式..."
-    
-    if check_running; then
-        error "调度器已经在运行，请先停止"
-        exit 1
-    fi
-    
-    # 检查依赖是否安装
-    if [ ! -d "node_modules" ]; then
-        log "安装依赖..."
-        npm install
-    fi
-    
-    # 启动开发模式
-    log "启动开发模式调度器..."
-    nohup npm run dev > "$LOG_FILE" 2>&1 &
-    PID=$!
-    echo $PID > "$PID_FILE"
-    
-    log "开发模式调度器已启动 (PID: $PID)"
-    log "日志文件: $LOG_FILE"
-}
-
-# 测试函数
-test() {
-    log "运行测试..."
-    npm run test
-}
-
-# 配置函数
-config() {
-    log "显示配置..."
+# 配置模式
+config_mode() {
+    log "显示配置信息..."
     npm run config
 }
 
-# 帮助函数
-help() {
-    echo "Uniswap 监控调度器管理脚本"
-    echo ""
-    echo "用法: $0 {start|stop|restart|status|logs|reports|dev|test|config|help}"
-    echo ""
-    echo "命令:"
-    echo "  start    启动调度器 (生产模式)"
-    echo "  stop     停止调度器"
-    echo "  restart  重启调度器"
-    echo "  status   查看调度器状态"
-    echo "  logs     查看实时日志"
-    echo "  reports  查看监控报告"
-    echo "  dev      启动开发模式"
-    echo "  test     运行测试"
-    echo "  config   显示配置"
-    echo "  help     显示此帮助信息"
-    echo ""
+# 主函数
+main() {
+    local action=$1
+    local mode=$2
+    
+    check_dependencies
+    
+    case $action in
+        "start")
+            build_project
+            start_service ${mode:-"background"}
+            ;;
+        "stop")
+            stop_service ${mode:-"background"}
+            ;;
+        "restart")
+            stop_service ${mode:-"background"}
+            sleep 2
+            build_project
+            start_service ${mode:-"background"}
+            ;;
+        "status")
+            show_status
+            ;;
+        "logs")
+            show_logs $2
+            ;;
+        "reports")
+            show_reports
+            ;;
+        "dev")
+            dev_mode
+            ;;
+        "test")
+            test_mode
+            ;;
+        "config")
+            config_mode
+            ;;
+        "help"|"--help"|"-h")
+            echo "Uniswap 监控调度器管理脚本"
+            echo ""
+            echo "用法: $0 <action> [mode]"
+            echo ""
+            echo "Actions:"
+            echo "  start    启动服务"
+            echo "  stop     停止服务"
+            echo "  restart  重启服务"
+            echo "  status   查看状态"
+            echo "  logs     查看日志"
+            echo "  reports  查看报告"
+            echo "  dev      开发模式"
+            echo "  test     测试模式"
+            echo "  config   显示配置"
+            echo "  help     显示帮助"
+            echo ""
+            echo "Modes:"
+            echo "  foreground(fg)  前台运行"
+            echo "  background(bg)   后台运行 (默认)"
+            echo "  pm2              PM2 运行"
+            echo ""
+            echo "示例:"
+            echo "  $0 start              # 后台启动"
+            echo "  $0 start foreground   # 前台启动"
+            echo "  $0 start pm2          # PM2 启动"
+            echo "  $0 stop               # 停止服务"
+            echo "  $0 logs 100           # 查看最后100行日志"
+            ;;
+        *)
+            error "未知操作: $action"
+            echo "使用 '$0 help' 查看帮助"
+            exit 1
+            ;;
+    esac
 }
 
-# 主函数
-case "$1" in
-    start)
-        start
-        ;;
-    stop)
-        stop
-        ;;
-    restart)
-        restart
-        ;;
-    status)
-        status
-        ;;
-    logs)
-        logs
-        ;;
-    reports)
-        reports
-        ;;
-    dev)
-        dev
-        ;;
-    test)
-        test
-        ;;
-    config)
-        config
-        ;;
-    help|--help|-h)
-        help
-        ;;
-    *)
-        echo "用法: $0 {start|stop|restart|status|logs|reports|dev|test|config|help}"
-        exit 1
-        ;;
-esac
-
-exit 0 
+# 运行主函数
+main "$@" 
