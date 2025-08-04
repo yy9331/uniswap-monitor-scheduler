@@ -9,6 +9,11 @@
 - **[生产环境部署指南](PRODUCTION_DEPLOYMENT.md)** - 生产环境最佳实践和运行方式选择
 - **[生产环境部署指南 (英文)](PRODUCTION_DEPLOYMENT_EN.md)** - Production environment deployment guide
 
+### 🔄 迁移指南
+
+- **[TypeScript 迁移指南](TYPESCRIPT_MIGRATION.md)** - 从 JavaScript 到 TypeScript 的完整迁移过程
+- **[TypeScript 迁移指南 (英文)](TYPESCRIPT_MIGRATION_EN.md)** - Complete migration process from JavaScript to TypeScript
+
 ### 📋 快速参考
 
 #### 生产环境推荐流程
@@ -117,9 +122,17 @@ pm2 restart uniswap-monitor
 ./start.sh reports
 ```
 
+### Q: 项目是如何从 JavaScript 迁移到 TypeScript 的？
+
+**A: 查看迁移指南**
+
+- 完整的迁移过程记录在 [TypeScript 迁移指南](TYPESCRIPT_MIGRATION.md)
+- 包含详细的步骤、解决的问题和迁移效果
+
 ## 📞 获取帮助
 
 - 查看 [生产环境部署指南](PRODUCTION_DEPLOYMENT.md) 获取详细说明
+- 查看 [TypeScript 迁移指南](TYPESCRIPT_MIGRATION.md) 了解迁移过程
 - 查看项目主文档 [README.md](../README.md) 了解完整功能
 - 查看 [README.zh-CN.md](../README.zh-CN.md) 获取中文说明
 

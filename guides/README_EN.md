@@ -9,6 +9,11 @@
 - **[Production Environment Deployment Guide](PRODUCTION_DEPLOYMENT_EN.md)** - Production environment best practices and running method selection
 - **[Production Environment Deployment Guide (Chinese)](PRODUCTION_DEPLOYMENT.md)** - 生产环境部署指南
 
+### 🔄 Migration Guides
+
+- **[TypeScript Migration Guide](TYPESCRIPT_MIGRATION_EN.md)** - Complete migration process from JavaScript to TypeScript
+- **[TypeScript Migration Guide (Chinese)](TYPESCRIPT_MIGRATION.md)** - 从 JavaScript 到 TypeScript 的完整迁移过程
+
 ### 📋 Quick Reference
 
 #### Production Environment Recommended Process
@@ -117,9 +122,17 @@ pm2 restart uniswap-monitor
 ./start.sh reports
 ```
 
+### Q: How was the project migrated from JavaScript to TypeScript?
+
+**A: Check the migration guide**
+
+- Complete migration process is documented in [TypeScript Migration Guide](TYPESCRIPT_MIGRATION_EN.md)
+- Includes detailed steps, resolved issues, and migration results
+
 ## 📞 Get Help
 
 - View [Production Environment Deployment Guide](PRODUCTION_DEPLOYMENT_EN.md) for detailed instructions
+- View [TypeScript Migration Guide](TYPESCRIPT_MIGRATION_EN.md) to understand the migration process
 - View main project documentation [README.md](../README.md) to understand complete functionality
 - View [README.zh-CN.md](../README.zh-CN.md) for Chinese instructions
 
