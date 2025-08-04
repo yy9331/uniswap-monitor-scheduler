@@ -1,29 +1,33 @@
-const cron = require('node-cron');
-const UniswapMonitor = require('./monitor');
-const moment = require('moment');
-const fs = require('fs-extra');
-const path = require('path');
-const config = require('./config');
+import cron from 'node-cron';
+import moment from 'moment';
+import fs from 'fs-extra';
+import path from 'path';
+import config from './config';
+import UniswapMonitor from './monitor';
 
 class Scheduler {
+    private monitor: UniswapMonitor;
+    private startDate: moment.Moment;
+    private endDate: moment.Moment;
+    private isRunning: boolean = false;
+
     constructor() {
         this.monitor = new UniswapMonitor();
         this.startDate = moment();
         this.endDate = moment().add(config.MONITOR_DAYS, 'days');
-        this.isRunning = false;
     }
 
-    async log(message) {
+    async log(message: string): Promise<void> {
         const timestamp = moment().format('YYYY-MM-DD HH:mm:ss');
         const logMessage = `[${timestamp}] ${message}`;
         console.log(logMessage);
         
-        const logFile = path.join(__dirname, 'logs', `scheduler-${moment().format('YYYY-MM-DD')}.log`);
+        const logFile = path.join(__dirname, '..', 'logs', `scheduler-${moment().format('YYYY-MM-DD')}.log`);
         await fs.ensureDir(path.dirname(logFile));
         await fs.appendFile(logFile, logMessage + '\n');
     }
 
-    async start() {
+    async start(): Promise<void> {
         await this.log('启动 Uniswap 监控调度器...');
         await this.log(`监控开始时间: ${this.startDate.format('YYYY-MM-DD HH:mm:ss')}`);
         await this.log(`监控结束时间: ${this.endDate.format('YYYY-MM-DD HH:mm:ss')}`);
@@ -41,7 +45,7 @@ class Scheduler {
             await this.log('开始执行定时监控任务...');
             
             try {
-                const report = await this.monitor.run();
+                await this.monitor.run();
                 await this.log('定时监控任务完成');
                 
                 // 检查是否超过监控周期
@@ -50,7 +54,7 @@ class Scheduler {
                     process.exit(0);
                 }
             } catch (error) {
-                await this.log(`定时监控任务失败: ${error.message}`);
+                await this.log(`定时监控任务失败: ${error instanceof Error ? error.message : 'Unknown error'}`);
             } finally {
                 this.isRunning = false;
             }
@@ -67,11 +71,11 @@ class Scheduler {
             await this.monitor.run();
             await this.log('初始监控任务完成');
         } catch (error) {
-            await this.log(`初始监控任务失败: ${error.message}`);
+            await this.log(`初始监控任务失败: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
     }
 
-    async stop() {
+    async stop(): Promise<void> {
         await this.log('停止调度器...');
         process.exit(0);
     }

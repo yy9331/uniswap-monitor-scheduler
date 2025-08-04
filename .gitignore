@@ -69,6 +69,10 @@ jspm_packages/
 ehthumbs.db
 Thumbs.db
 
+# TypeScript
+dist/
+*.tsbuildinfo
+
 # Project specific
 scheduler.pid
 scheduler.log

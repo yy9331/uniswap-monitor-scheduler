@@ -1,26 +1,32 @@
-const axios = require('axios');
-const fs = require('fs-extra');
-const path = require('path');
-const moment = require('moment');
-const { exec } = require('child_process');
-const util = require('util');
-const execAsync = util.promisify(exec);
-const config = require('./config');
+import axios from 'axios';
+import fs from 'fs-extra';
+import path from 'path';
+import moment from 'moment';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+import config from './config';
+import { MonitorReport, ProgressInfo } from './types';
+
+const execAsync = promisify(exec);
 
 class UniswapMonitor {
+    private subgraphPath: string;
+    private logPath: string;
+    private reportPath: string;
+
     constructor() {
         this.subgraphPath = config.SUBGRAPH_PATH;
-        this.logPath = path.join(__dirname, 'logs');
-        this.reportPath = path.join(__dirname, 'reports');
+        this.logPath = path.join(__dirname, '..', 'logs');
+        this.reportPath = path.join(__dirname, '..', 'reports');
         this.ensureDirectories();
     }
 
-    async ensureDirectories() {
+    private async ensureDirectories(): Promise<void> {
         await fs.ensureDir(this.logPath);
         await fs.ensureDir(this.reportPath);
     }
 
-    async log(message) {
+    async log(message: string): Promise<void> {
         const timestamp = moment().format('YYYY-MM-DD HH:mm:ss');
         const logMessage = `[${timestamp}] ${message}`;
         console.log(logMessage);
@@ -29,7 +35,7 @@ class UniswapMonitor {
         await fs.appendFile(logFile, logMessage + '\n');
     }
 
-    async getCurrentBlock() {
+    async getCurrentBlock(): Promise<number | null> {
         try {
             const response = await axios.post(config.ETHEREUM_RPC, {
                 jsonrpc: '2.0',
@@ -46,12 +52,12 @@ class UniswapMonitor {
             }
             return null;
         } catch (error) {
-            await this.log(`获取当前区块失败: ${error.message}`);
+            await this.log(`获取当前区块失败: ${error instanceof Error ? error.message : 'Unknown error'}`);
             return null;
         }
     }
 
-    async getSubgraphProgress() {
+    async getSubgraphProgress(): Promise<number | null> {
         try {
             const response = await axios.post(config.GRAPHQL_ENDPOINT, {
                 query: '{ _meta { block { number } } }'
@@ -65,22 +71,22 @@ class UniswapMonitor {
             }
             return null;
         } catch (error) {
-            await this.log(`获取子图进度失败: ${error.message}`);
+            await this.log(`获取子图进度失败: ${error instanceof Error ? error.message : 'Unknown error'}`);
             return null;
         }
     }
 
-    async getDatabaseSize() {
+    async getDatabaseSize(): Promise<string> {
         try {
             const { stdout } = await execAsync(`du -sh ${this.subgraphPath}/data/postgres/`);
             return stdout.trim();
         } catch (error) {
-            await this.log(`获取数据库大小失败: ${error.message}`);
+            await this.log(`获取数据库大小失败: ${error instanceof Error ? error.message : 'Unknown error'}`);
             return 'Unknown';
         }
     }
 
-    async getDatabaseStats() {
+    async getDatabaseStats(): Promise<string[]> {
         try {
             const { stdout } = await execAsync(`
                 docker exec ${config.POSTGRES_CONTAINER} psql -U ${config.POSTGRES_USER} -d ${config.POSTGRES_DB} -c "
@@ -102,22 +108,22 @@ class UniswapMonitor {
             `);
             return stdout.trim().split('\n');
         } catch (error) {
-            await this.log(`获取数据库统计失败: ${error.message}`);
+            await this.log(`获取数据库统计失败: ${error instanceof Error ? error.message : 'Unknown error'}`);
             return [];
         }
     }
 
-    async getDockerStatus() {
+    async getDockerStatus(): Promise<string> {
         try {
             const { stdout } = await execAsync(`docker ps --filter "${config.DOCKER_FILTER}" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"`);
             return stdout.trim();
         } catch (error) {
-            await this.log(`获取Docker状态失败: ${error.message}`);
+            await this.log(`获取Docker状态失败: ${error instanceof Error ? error.message : 'Unknown error'}`);
             return 'Unknown';
         }
     }
 
-    async calculateProgress(currentBlock, subgraphBlock) {
+    async calculateProgress(currentBlock: number | null, subgraphBlock: number | null): Promise<ProgressInfo | null> {
         if (!currentBlock || !subgraphBlock) return null;
         
         const startBlock = config.UNISWAP_V2_START_BLOCK; // Uniswap V2 起始区块
@@ -133,7 +139,7 @@ class UniswapMonitor {
         };
     }
 
-    async generateReport() {
+    async generateReport(): Promise<MonitorReport> {
         await this.log('开始生成监控报告...');
         
         const currentBlock = await this.getCurrentBlock();
@@ -143,16 +149,23 @@ class UniswapMonitor {
         const dockerStatus = await this.getDockerStatus();
         const progress = await this.calculateProgress(currentBlock, subgraphBlock);
         
-        const report = {
+        const report: MonitorReport = {
             timestamp: moment().format('YYYY-MM-DD HH:mm:ss'),
             currentBlock,
             subgraphBlock,
             databaseSize,
-            dockerStatus,
+            dockerStatus: {
+                containers: [] // 这里可以解析dockerStatus字符串为结构化数据
+            },
             progress,
             databaseStats: databaseStats.map(line => {
-                const [table, count] = line.split('|');
-                return { table: table.trim(), count: parseInt(count) || 0 };
+                const parts = line.split('|');
+                const table = parts[0];
+                const count = parts[1];
+                return { 
+                    table: table?.trim() || 'unknown', 
+                    count: parseInt(count || '0') || 0 
+                };
             })
         };
         
@@ -162,7 +175,7 @@ class UniswapMonitor {
         await this.log(`报告已保存到: ${reportFile}`);
         
         // 生成可读的报告
-        const readableReport = this.generateReadableReport(report);
+        const readableReport = this.generateReadableReport(report, dockerStatus);
         const readableFile = path.join(this.reportPath, `report-${moment().format('YYYY-MM-DD-HH-mm')}.txt`);
         await fs.writeFile(readableFile, readableReport);
         
@@ -171,7 +184,7 @@ class UniswapMonitor {
         return report;
     }
 
-    generateReadableReport(report) {
+    private generateReadableReport(report: MonitorReport, dockerStatus: string): string {
         let reportText = `=== Uniswap V2 子图监控报告 ===\n`;
         reportText += `生成时间: ${report.timestamp}\n\n`;
         
@@ -194,12 +207,12 @@ class UniswapMonitor {
         });
         
         reportText += `\n🐳 Docker 状态:\n`;
-        reportText += report.dockerStatus;
+        reportText += dockerStatus;
         
         return reportText;
     }
 
-    async run() {
+    async run(): Promise<MonitorReport> {
         await this.log('开始执行监控任务...');
         
         try {
@@ -207,13 +220,13 @@ class UniswapMonitor {
             await this.log('监控任务完成');
             return report;
         } catch (error) {
-            await this.log(`监控任务失败: ${error.message}`);
+            await this.log(`监控任务失败: ${error instanceof Error ? error.message : 'Unknown error'}`);
             throw error;
         }
     }
 }
 
-module.exports = UniswapMonitor;
+export default UniswapMonitor;
 
 // 如果直接运行此文件
 if (require.main === module) {

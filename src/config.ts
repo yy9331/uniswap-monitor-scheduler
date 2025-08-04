@@ -1,9 +1,11 @@
+import { Config } from './types';
+
 /**
  * Uniswap 监控调度器配置文件
  * 在这里可以修改各种监控参数
  */
 
-module.exports = {
+const config: Config = {
     // 监控周期设置
     MONITOR_DAYS: 10,                    // 监控天数 (修改这个值来改变监控周期)
     
@@ -55,4 +57,6 @@ module.exports = {
             url: ''
         }
     }
-}; 
+};
+
+export default config; 

@@ -2,11 +2,23 @@
   "name": "uniswap-monitor-scheduler",
   "version": "1.0.0",
   "description": "定时监控 Uniswap v2 子图扫链进度和数据库大小",
-  "main": "index.js",
+  "main": "dist/index.js",
   "scripts": {
-    "start": "node index.js",
-    "monitor": "node monitor.js",
-    "test": "node test.js"
+    "build": "tsc",
+    "start": "npm run build && node dist/index.js",
+    "dev": "ts-node src/index.ts",
+    "monitor": "npm run build && node dist/monitor.js",
+    "monitor:dev": "ts-node src/monitor.ts",
+    "test": "npm run build && node dist/test.js",
+    "test:dev": "ts-node src/test.ts",
+    "config": "ts-node src/config-helper.ts",
+    "config:days": "ts-node src/config-helper.ts days",
+    "config:schedule": "ts-node src/config-helper.ts schedule",
+    "config:timezone": "ts-node src/config-helper.ts timezone",
+    "config:timeout": "ts-node src/config-helper.ts timeout",
+    "config:retries": "ts-node src/config-helper.ts retries",
+    "clean": "rm -rf dist",
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "node-cron": "^3.0.3",
@@ -15,11 +27,20 @@
     "moment": "^2.29.4",
     "nodemailer": "^6.9.7"
   },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/node-cron": "^3.0.0",
+    "@types/fs-extra": "^11.0.0",
+    "@types/nodemailer": "^6.4.0",
+    "typescript": "^5.0.0",
+    "ts-node": "^10.9.0"
+  },
   "keywords": [
     "uniswap",
     "subgraph",
     "monitor",
-    "scheduler"
+    "scheduler",
+    "typescript"
   ],
   "author": "Your Name",
   "license": "MIT"

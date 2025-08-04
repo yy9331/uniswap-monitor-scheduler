@@ -2,10 +2,11 @@
 
 [English](README.md) · [中文](README.zh-CN.md)
 
-这是一个用于定时监控 Uniswap V2 子图扫链进度和数据库大小的自动化工具。
+这是一个用于定时监控 Uniswap V2 子图扫链进度和数据库大小的自动化工具。**现已完全迁移到 TypeScript，提供更好的类型安全性和开发体验。**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js](https://img.shields.io/badge/Node.js-16+-green.svg)](https://nodejs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue.svg)](https://www.typescriptlang.org/)
 [![Docker](https://img.shields.io/badge/Docker-Required-blue.svg)](https://docker.com/)
 
 ## ✨ 功能特性
@@ -18,32 +19,78 @@
 - 📝 **日志记录**: 完整的操作日志记录
 - ⚙️ **灵活配置**: 通过配置文件轻松修改监控参数
 - ⏰ **自动停止**: 10天后自动停止监控
+- 🔒 **类型安全**: 完整的 TypeScript 支持，严格类型检查
+- 🚀 **一键部署**: 生产环境一键部署脚本
 
 ## 🏗️ 项目结构
 
 ```
 uniswap-monitor-scheduler/
-├── index.js          # 主程序 - 定时任务调度器
-├── monitor.js        # 监控核心逻辑
-├── config.js         # 配置文件 - 所有可配置参数
-├── config-helper.js  # 配置助手 - 方便修改配置
-├── test.js          # 测试脚本
-├── start.sh         # 启动脚本
-├── package.json     # 项目配置
-├── README.md        # 英文文档
-├── README.zh-CN.md  # 中文文档
-├── logs/            # 日志目录
-└── reports/         # 报告目录
+├── src/                    # TypeScript 源文件
+│   ├── types.ts           # 类型定义
+│   ├── config.ts          # 配置文件
+│   ├── monitor.ts         # 监控核心逻辑
+│   ├── index.ts           # 主调度器
+│   ├── test.ts            # 测试脚本
+│   └── config-helper.ts   # 配置助手
+├── dist/                   # 编译后的 JavaScript 文件
+├── logs/                   # 日志文件
+├── reports/                # 报告文件
+├── package.json           # 项目配置
+├── tsconfig.json          # TypeScript 配置
+├── start.sh               # 启动脚本
+├── deploy.sh              # 快速部署脚本
+├── README.md              # 英文文档
+├── README.zh-CN.md        # 中文文档
+└── LICENSE                # MIT 许可证
+```
+
+## 🚀 快速开始
+
+### 1. 快速部署 (推荐)
+
+```bash
+# 克隆项目并运行部署脚本
+git clone <your-repository-url>
+cd uniswap-monitor-scheduler
+./deploy.sh
+```
+
+### 2. 手动安装
+
+```bash
+# 安装依赖
+npm install
+
+# 构建项目
+npm run build
+
+# 测试功能
+npm run test:dev
+
+# 启动服务
+./start.sh start
+```
+
+### 3. 生产环境部署
+
+```bash
+# 后台运行
+nohup npm start > scheduler.log 2>&1 &
+
+# 或使用 PM2
+npm install -g pm2
+pm2 start dist/index.js --name "uniswap-monitor"
 ```
 
 ## ⚙️ 配置管理
 
-### 📝 配置文件 (config.js)
+### 📝 配置文件 (src/config.ts)
 
-所有监控参数都集中在 `config.js` 文件中，方便修改：
+所有监控参数都集中在 `src/config.ts` 文件中，方便修改：
 
-```javascript
-module.exports = {
+```typescript
+const config: Config = {
     MONITOR_DAYS: 10,                    // 监控天数
     CRON_SCHEDULE: '0 7 * * *',         // 定时任务表达式
     TIMEZONE: 'Asia/Shanghai',           // 时区设置
@@ -60,63 +107,64 @@ module.exports = {
 
 ```bash
 # 查看当前配置
-node config-helper.js
+npm run config
 
 # 修改监控天数
-node config-helper.js days 15
+npm run config:days 15
 
 # 修改定时任务
-node config-helper.js schedule "0 8 * * *"
+npm run config:schedule "0 8 * * *"
 
 # 修改时区
-node config-helper.js timezone "America/New_York"
+npm run config:timezone "America/New_York"
 
-# 查看帮助
-node config-helper.js help
+# 修改超时时间
+npm run config:timeout 15000
+
+# 修改重试次数
+npm run config:retries 5
 ```
 
-## 🚀 快速开始
+## 🛠️ 管理命令
 
-### 1. 安装依赖
+### 服务管理
 
 ```bash
-cd /home/code/uniswap-v2-monitor/uniswap-monitor-scheduler
-npm install
+./start.sh start     # 启动服务
+./start.sh stop      # 停止服务
+./start.sh restart   # 重启服务
+./start.sh status    # 查看状态
+./start.sh logs      # 查看日志
+./start.sh reports   # 查看报告
+./start.sh dev       # 开发模式启动
+./start.sh test      # 运行测试
+./start.sh config    # 显示配置
 ```
 
-### 2. 查看和修改配置
+### 开发模式
 
 ```bash
-# 查看当前配置
-node config-helper.js
-
-# 修改监控天数为15天
-node config-helper.js days 15
+npm run dev          # 开发模式运行
+npm run test:dev     # 开发模式测试
+npm run monitor:dev  # 开发模式监控
 ```
 
-### 3. 测试监控功能
+### 生产模式
 
 ```bash
-# 运行测试脚本
-npm run test
-```
-
-### 4. 启动监控调度器
-
-```bash
-# 启动定时监控
-npm start
-# 或者使用启动脚本
-./start.sh start
+npm run build        # 构建项目
+npm start            # 生产模式运行
+npm run test         # 生产模式测试
+npm run monitor      # 生产模式监控
 ```
 
 ## 📊 监控内容
 
 ### 📊 区块进度监控
 - 当前以太坊最新区块
-- 子图已扫描区块
+- 子图扫描区块
 - 扫描进度百分比
-- 剩余待扫描区块数量
+- 剩余扫描区块
 
 ### 💾 数据库监控
 - PostgreSQL 数据库大小
@@ -125,7 +173,7 @@ npm start
 
 ### 🐳 系统状态监控
 - Docker 容器运行状态
-- Graph 节点健康状态
+- Graph Node 健康状态
 - 网络连接状态
 
 ## 📋 报告格式
@@ -172,54 +220,102 @@ npm start
   sgd1.swap: 0 条记录
 ```
 
-## 🛠️ 使用方法
+## 🚀 服务器部署
 
-### 1. 手动执行监控
+### 环境要求
+
+- **操作系统**: Linux (Ubuntu 20.04+ / CentOS 7+)
+- **Node.js**: 16.x 或更高版本
+- **Docker**: 用于运行子图服务
+- **内存**: 至少 2GB RAM
+- **存储**: 至少 10GB 可用空间
+
+### 快速部署
 
 ```bash
-# 直接运行监控脚本
-node monitor.js
+# 1. 安装依赖
+sudo apt update && sudo apt upgrade -y
+curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+sudo apt-get install -y nodejs
+
+# 2. 安装 Docker
+curl -fsSL https://get.docker.com -o get-docker.sh
+sudo sh get-docker.sh
+sudo usermod -aG docker $USER
+
+# 3. 克隆并部署
+git clone <your-repository-url>
+cd uniswap-monitor-scheduler
+./deploy.sh
 ```
 
-### 2. 启动定时监控
+### 系统服务配置 (可选)
+
+创建 systemd 服务：
 
 ```bash
-# 启动调度器（每天早上7点执行）
-npm start
-# 或使用启动脚本
-./start.sh start
+sudo nano /etc/systemd/system/uniswap-monitor.service
 ```
 
-### 3. 后台运行
+添加内容：
 
-```bash
-# 使用 nohup 后台运行
-nohup npm start > scheduler.log 2>&1 &
+```ini
+[Unit]
+Description=Uniswap Monitor Scheduler
+After=network.target
 
-# 查看进程
-ps aux | grep node
+[Service]
+Type=simple
+User=your-username
+WorkingDirectory=/path/to/uniswap-monitor-scheduler
+ExecStart=/usr/bin/npm start
+Restart=always
+RestartSec=10
+Environment=NODE_ENV=production
 
-# 停止进程
-pkill -f "node index.js"
+[Install]
+WantedBy=multi-user.target
 ```
 
-### 4. 管理调度器
+启用服务：
 
 ```bash
-# 查看状态
-./start.sh status
+sudo systemctl daemon-reload
+sudo systemctl enable uniswap-monitor
+sudo systemctl start uniswap-monitor
+sudo systemctl status uniswap-monitor
+```
 
-# 停止调度器
-./start.sh stop
+## 🔧 TypeScript 迁移
 
-# 重启调度器
-./start.sh restart
+### 迁移总结
 
-# 查看日志
-./start.sh logs
+项目已成功从 JavaScript 迁移到 TypeScript，提供：
 
-# 查看报告
-./start.sh reports
+- **类型安全**: 编译时错误检查
+- **更好的错误处理**: 明确的错误信息
+- **开发体验**: IDE 智能提示和自动补全
+- **代码质量**: 严格的类型检查
+
+### 迁移详情
+
+- ✅ 所有 JavaScript 文件迁移到 TypeScript
+- ✅ 添加完整的类型定义
+- ✅ 严格的 TypeScript 配置
+- ✅ 更新构建系统
+- ✅ 修复所有编译错误
+- ✅ 支持开发和生产模式
+
+### 新的项目结构
+
+```
+src/
+├── types.ts           # 类型定义
+├── config.ts          # 配置
+├── monitor.ts         # 监控核心逻辑
+├── index.ts           # 主调度器
+├── test.ts            # 测试脚本
+└── config-helper.ts   # 配置助手
 ```
 
 ## 📁 日志和报告
@@ -232,35 +328,35 @@ pkill -f "node index.js"
 - `reports/report-YYYY-MM-DD-HH-mm.json`: JSON 格式报告
 - `reports/report-YYYY-MM-DD-HH-mm.txt`: 可读格式报告
 
-## ⚙️ 配置说明
+## ⚙️ 配置
 
 ### 监控路径
 - 子图项目路径: `/home/code/uniswap-v2-monitor/uniswap-v2-monitor-subgraph`
 - GraphQL 端点: `http://localhost:8000/subgraphs/name/uni-swap-v2-monitor`
 
-### 定时配置
+### 调度配置
 - 执行时间: 每天早上 7:00
 - 时区: Asia/Shanghai
-- 监控周期: 10天 (可在 config.js 中修改)
+- 监控周期: 10 天 (可在 src/config.ts 中配置)
 
 ### 可配置参数
 
-| 参数 | 说明 | 默认值 |
+| 参数 | 描述 | 默认值 |
 |------|------|--------|
 | `MONITOR_DAYS` | 监控天数 | 10 |
-| `CRON_SCHEDULE` | 定时任务表达式 | `0 7 * * *` |
+| `CRON_SCHEDULE` | Cron 任务表达式 | `0 7 * * *` |
 | `TIMEZONE` | 时区 | `Asia/Shanghai` |
 | `SUBGRAPH_PATH` | 子图路径 | `/home/code/...` |
-| `GRAPHQL_ENDPOINT` | GraphQL端点 | `http://localhost:8000/...` |
-| `ETHEREUM_RPC` | 以太坊RPC | `https://eth.llamarpc.com` |
-| `REQUEST_TIMEOUT` | 请求超时时间 | 10000ms |
+| `GRAPHQL_ENDPOINT` | GraphQL 端点 | `http://localhost:8000/...` |
+| `ETHEREUM_RPC` | 以太坊 RPC | `https://eth.llamarpc.com` |
+| `REQUEST_TIMEOUT` | 请求超时 | 10000ms |
 | `MAX_RETRIES` | 最大重试次数 | 3 |
 
 ## 🔧 故障排除
 
 ### 常见问题
 
-1. **子图服务未启动**
+1. **子图服务未运行**
    ```bash
    # 检查 Docker 容器状态
    docker ps --filter "name=uni-swap-v2-monitor"
@@ -279,12 +375,13 @@ pkill -f "node index.js"
    docker-compose restart postgres
    ```
 
-3. **权限问题**
+3. **TypeScript 编译错误**
    ```bash
-   # 确保脚本有执行权限
-   chmod +x monitor.js
-   chmod +x index.js
-   chmod +x config-helper.js
+   # 检查 TypeScript 配置
+   npm run type-check
+   
+   # 重新构建项目
+   npm run build
    ```
 
 ### 调试模式
@@ -297,25 +394,82 @@ DEBUG=* npm start
 tail -f logs/scheduler-$(date +%Y-%m-%d).log
 ```
 
+## 📈 性能优化
+
+### 系统优化
+
+```bash
+# 增加文件描述符限制
+echo "* soft nofile 65536" | sudo tee -a /etc/security/limits.conf
+echo "* hard nofile 65536" | sudo tee -a /etc/security/limits.conf
+
+# 优化内核参数
+echo "vm.max_map_count=262144" | sudo tee -a /etc/sysctl.conf
+sudo sysctl -p
+```
+
+### 监控优化
+
+```bash
+# 调整监控频率 (减少资源消耗)
+npm run config:schedule "0 */6 * * *"  # 每6小时执行一次
+
+# 调整超时时间
+# 编辑 src/config.ts 中的 REQUEST_TIMEOUT 值
+```
+
+## 🔒 安全建议
+
+### 网络安全
+
+```bash
+# 配置防火墙
+sudo ufw allow 22/tcp
+sudo ufw allow 8000/tcp  # Graph Node
+sudo ufw allow 5432/tcp  # PostgreSQL
+sudo ufw enable
+```
+
+### 访问控制
+
+```bash
+# 限制文件访问权限
+chmod 600 src/config.ts
+chmod 700 logs/ reports/
+
+# 使用非 root 用户运行
+sudo useradd -m -s /bin/bash uniswap-monitor
+sudo chown -R uniswap-monitor:uniswap-monitor /path/to/uniswap-monitor-scheduler
+```
+
 ## 🚀 扩展功能
 
 ### 邮件通知
-可以添加邮件通知功能，在监控任务完成后发送报告邮件。
+添加邮件通知功能，在监控任务完成后发送报告。
 
 ### 微信/钉钉通知
-可以集成企业微信或钉钉机器人，发送监控通知。
+集成微信或钉钉机器人发送监控通知。
 
 ### 数据可视化
-可以将监控数据导入到 Grafana 等工具进行可视化展示。
+将监控数据导入 Grafana 等工具进行可视化显示。
+
+### Web 界面
+添加 Express 服务器提供 Web 界面查看监控结果。
 
 ## 📄 许可证
 
-[MIT License](LICENSE)
+[MIT 许可证](LICENSE)
 
 ## 🤝 贡献
 
-欢迎贡献代码！请随时提交 Pull Request。
+欢迎贡献！请随时提交 Pull Request。
 
 ## 📞 支持
 
-如果您有任何问题或建议，请 [提交 Issue](https://github.com/yy9331/uniswap-monitor-scheduler/issues)。 
+如果你有任何问题或问题，请[提交 issue](https://github.com/yy9331/uniswap-monitor-scheduler/issues)。
+
+---
+
+**迁移完成！** 🎉
+
+项目已成功迁移到 TypeScript，并准备好用于生产环境部署，提供改进的类型安全性和开发体验。 

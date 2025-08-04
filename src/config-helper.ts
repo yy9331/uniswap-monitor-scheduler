@@ -1,13 +1,13 @@
-#!/usr/bin/env node
+#!/usr/bin/env ts-node
 
 /**
  * 配置助手脚本
  * 用于查看和修改监控配置
  */
 
-const fs = require('fs-extra');
-const path = require('path');
-const config = require('./config');
+import fs from 'fs-extra';
+import path from 'path';
+import config from './config';
 
 // 颜色定义
 const colors = {
@@ -21,11 +21,11 @@ const colors = {
     cyan: '\x1b[36m'
 };
 
-function log(message, color = 'reset') {
+function log(message: string, color: keyof typeof colors = 'reset'): void {
     console.log(`${colors[color]}${message}${colors.reset}`);
 }
 
-function showConfig() {
+function showConfig(): void {
     log('\n=== Uniswap 监控调度器配置 ===', 'cyan');
     log(`监控天数: ${config.MONITOR_DAYS} 天`, 'green');
     log(`定时任务: ${config.CRON_SCHEDULE}`, 'green');
@@ -39,8 +39,8 @@ function showConfig() {
     log('================================\n', 'cyan');
 }
 
-function updateConfig(key, value) {
-    const configPath = path.join(__dirname, 'config.js');
+function updateConfig(key: string, value: string | number): void {
+    const configPath = path.join(__dirname, 'config.ts');
     
     try {
         let configContent = fs.readFileSync(configPath, 'utf8');
@@ -55,23 +55,23 @@ function updateConfig(key, value) {
         log('请重启调度器以应用新配置: ./start.sh restart', 'yellow');
         
     } catch (error) {
-        log(`❌ 更新配置失败: ${error.message}`, 'red');
+        log(`❌ 更新配置失败: ${error instanceof Error ? error.message : 'Unknown error'}`, 'red');
     }
 }
 
-function showHelp() {
+function showHelp(): void {
     log('\n=== 配置助手使用说明 ===', 'cyan');
     log('查看当前配置:', 'yellow');
-    log('  node config-helper.js', 'green');
+    log('  npm run config', 'green');
     log('', 'reset');
     log('修改监控天数:', 'yellow');
-    log('  node config-helper.js days 15', 'green');
+    log('  npm run config:days 15', 'green');
     log('', 'reset');
     log('修改定时任务:', 'yellow');
-    log('  node config-helper.js schedule "0 8 * * *"', 'green');
+    log('  npm run config:schedule "0 8 * * *"', 'green');
     log('', 'reset');
     log('修改时区:', 'yellow');
-    log('  node config-helper.js timezone "America/New_York"', 'green');
+    log('  npm run config:timezone "America/New_York"', 'green');
     log('', 'reset');
     log('可用的配置项:', 'yellow');
     log('  days      - 监控天数', 'green');
@@ -83,7 +83,7 @@ function showHelp() {
 }
 
 // 主函数
-async function main() {
+async function main(): Promise<void> {
     const args = process.argv.slice(2);
     
     if (args.length === 0) {
