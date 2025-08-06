@@ -29,7 +29,7 @@ function showConfig(): void {
     log('\n=== Uniswap 监控调度器配置 ===', 'cyan');
     log(`监控天数: ${config.MONITOR_DAYS} 天`, 'green');
     log(`项目下线时间: ${config.PROJECT_SHUTDOWN_DAYS === 0 ? '永不停止' : config.PROJECT_SHUTDOWN_DAYS + '天后自动停止'}`, 'green');
-    log(`定时任务: ${config.CRON_SCHEDULE}`, 'green');
+    log(`定时任务: ${config.CRON_SCHEDULES.join(', ')}`, 'green');
     log(`时区: ${config.TIMEZONE}`, 'green');
     log(`子图路径: ${config.SUBGRAPH_PATH}`, 'green');
     log(`GraphQL端点: ${config.GRAPHQL_ENDPOINT}`, 'green');

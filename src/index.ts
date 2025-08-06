@@ -47,41 +47,43 @@ class Scheduler {
             await this.log(`项目下线时间: 永不停止 (PROJECT_SHUTDOWN_DAYS=0)`);
         }
         
-        await this.log(`定时任务: ${config.CRON_SCHEDULE} 执行监控`);
+        await this.log(`定时任务: ${config.CRON_SCHEDULES.join(', ')} 执行监控`);
         
-        // 设置定时任务
-        cron.schedule(config.CRON_SCHEDULE, async () => {
-            if (this.isRunning) {
-                await this.log('上一个监控任务还在运行，跳过本次执行');
-                return;
-            }
-            
-            this.isRunning = true;
-            await this.log('开始执行定时监控任务...');
-            
-            try {
-                await this.monitor.run();
-                await this.log('定时监控任务完成');
-                
-                // 检查是否超过监控周期
-                if (moment().isAfter(this.endDate)) {
-                    await this.log(`监控周期已结束 (${config.MONITOR_DAYS}天)，停止调度器`);
-                    process.exit(0);
+        // 设置多个定时任务
+        config.CRON_SCHEDULES.forEach((schedule, index) => {
+            cron.schedule(schedule, async () => {
+                if (this.isRunning) {
+                    await this.log(`定时任务 ${index + 1} (${schedule}): 上一个监控任务还在运行，跳过本次执行`);
+                    return;
                 }
                 
-                // 检查是否到达项目下线时间
-                if (this.shutdownDate && moment().isAfter(this.shutdownDate)) {
-                    await this.log(`项目下线时间已到 (${config.PROJECT_SHUTDOWN_DAYS}天)，自动停止项目`);
-                    process.exit(0);
+                this.isRunning = true;
+                await this.log(`开始执行定时监控任务 ${index + 1} (${schedule})...`);
+                
+                try {
+                    await this.monitor.run();
+                    await this.log(`定时监控任务 ${index + 1} 完成`);
+                    
+                    // 检查是否超过监控周期
+                    if (moment().isAfter(this.endDate)) {
+                        await this.log(`监控周期已结束 (${config.MONITOR_DAYS}天)，停止调度器`);
+                        process.exit(0);
+                    }
+                    
+                    // 检查是否到达项目下线时间
+                    if (this.shutdownDate && moment().isAfter(this.shutdownDate)) {
+                        await this.log(`项目下线时间已到 (${config.PROJECT_SHUTDOWN_DAYS}天)，自动停止项目`);
+                        process.exit(0);
+                    }
+                } catch (error) {
+                    await this.log(`定时监控任务 ${index + 1} 失败: ${error instanceof Error ? error.message : 'Unknown error'}`);
+                } finally {
+                    this.isRunning = false;
                 }
-            } catch (error) {
-                await this.log(`定时监控任务失败: ${error instanceof Error ? error.message : 'Unknown error'}`);
-            } finally {
-                this.isRunning = false;
-            }
-        }, {
-            scheduled: true,
-            timezone: config.TIMEZONE
+            }, {
+                scheduled: true,
+                timezone: config.TIMEZONE
+            });
         });
         
         await this.log('调度器已启动，等待定时任务执行...');

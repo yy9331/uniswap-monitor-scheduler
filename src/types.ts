@@ -7,7 +7,7 @@ export interface Config {
   PROJECT_SHUTDOWN_DAYS: number;
   
   // 定时任务设置
-  CRON_SCHEDULE: string;
+  CRON_SCHEDULES: string[];
   TIMEZONE: string;
   
   // 监控路径设置

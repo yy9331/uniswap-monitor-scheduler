@@ -5,6 +5,7 @@ import moment from 'moment';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import config from './config';
+import { WebSocketClient } from './websocket-client';
 import { MonitorReport, ProgressInfo, DiskSpaceInfo, ProjectSpaceInfo, SubgraphHealthInfo } from './types';
 
 const execAsync = promisify(exec);
@@ -36,25 +37,66 @@ class UniswapMonitor {
     }
 
     async getCurrentBlock(): Promise<number | null> {
-        try {
-            const response = await axios.post(config.ETHEREUM_RPC, {
-                jsonrpc: '2.0',
-                method: 'eth_blockNumber',
-                params: [],
-                id: 1
-            }, {
-                headers: { 'Content-Type': 'application/json' },
-                timeout: config.REQUEST_TIMEOUT
-            });
-            
-            if (response.data && response.data.result) {
-                return parseInt(response.data.result, 16);
+        for (let attempt = 1; attempt <= config.MAX_RETRIES; attempt++) {
+            try {
+                // 检查是否是WSS协议
+                if (config.ETHEREUM_RPC.startsWith('wss://')) {
+                    const wsClient = new WebSocketClient(config.ETHEREUM_RPC, config.REQUEST_TIMEOUT);
+                    await wsClient.connect();
+                    const blockNumber = await wsClient.getBlockNumber();
+                    wsClient.disconnect();
+                    return blockNumber;
+                } else {
+                    // 使用HTTP协议 - 先尝试获取同步状态
+                    const syncResponse = await axios.post(config.ETHEREUM_RPC, {
+                        jsonrpc: '2.0',
+                        method: 'eth_syncing',
+                        params: [],
+                        id: attempt
+                    }, {
+                        headers: { 'Content-Type': 'application/json' },
+                        timeout: config.REQUEST_TIMEOUT
+                    });
+                    
+                    if (syncResponse.data && syncResponse.data.result && typeof syncResponse.data.result === 'object') {
+                        // 节点正在同步，返回当前同步的区块
+                        const currentBlock = syncResponse.data.result.currentBlock;
+                        if (currentBlock) {
+                            return parseInt(currentBlock, 16);
+                        }
+                    }
+                    
+                    // 如果同步状态获取失败，尝试获取最新区块
+                    const response = await axios.post(config.ETHEREUM_RPC, {
+                        jsonrpc: '2.0',
+                        method: 'eth_blockNumber',
+                        params: [],
+                        id: attempt
+                    }, {
+                        headers: { 'Content-Type': 'application/json' },
+                        timeout: config.REQUEST_TIMEOUT
+                    });
+                    
+                    if (response.data && response.data.result) {
+                        const blockNumber = parseInt(response.data.result, 16);
+                        // 如果区块号为0，可能是同步中，返回null
+                        return blockNumber > 0 ? blockNumber : null;
+                    }
+                    return null;
+                }
+            } catch (error) {
+                await this.log(`获取当前区块失败 (尝试 ${attempt}/${config.MAX_RETRIES}): ${error instanceof Error ? error.message : 'Unknown error'}`);
+                
+                if (attempt < config.MAX_RETRIES) {
+                    await this.log(`等待 ${config.RETRY_DELAY}ms 后重试...`);
+                    await new Promise(resolve => setTimeout(resolve, config.RETRY_DELAY));
+                } else {
+                    await this.log(`已达到最大重试次数，放弃获取当前区块`);
+                    return null;
+                }
             }
-            return null;
-        } catch (error) {
-            await this.log(`获取当前区块失败: ${error instanceof Error ? error.message : 'Unknown error'}`);
-            return null;
         }
+        return null;
     }
 
     async getSubgraphProgress(): Promise<number | null> {
@@ -88,23 +130,55 @@ class UniswapMonitor {
 
     async getDatabaseStats(): Promise<string[]> {
         try {
-            const { stdout } = await execAsync(`
+            // 首先检查数据库中的表结构
+            const { stdout: tables } = await execAsync(`
                 docker exec ${config.POSTGRES_CONTAINER} psql -U ${config.POSTGRES_USER} -d ${config.POSTGRES_DB} -c "
-                SELECT 
-                    'chain1.blocks' as table_name, COUNT(*) as count FROM chain1.blocks
-                    UNION ALL
-                    SELECT 'sgd1.pair' as table_name, COUNT(*) as count FROM sgd1.pair
-                    UNION ALL
-                    SELECT 'sgd1.swap' as table_name, COUNT(*) as count FROM sgd1.swap
-                    UNION ALL
-                    SELECT 'sgd1.mint' as table_name, COUNT(*) as count FROM sgd1.mint
-                    UNION ALL
-                    SELECT 'sgd1.burn' as table_name, COUNT(*) as count FROM sgd1.burn
-                    UNION ALL
-                    SELECT 'sgd1.pair_created' as table_name, COUNT(*) as count FROM sgd1.pair_created
-                    UNION ALL
-                    SELECT 'sgd1.token' as table_name, COUNT(*) as count FROM sgd1.token;
+                SELECT table_name FROM information_schema.tables 
+                WHERE table_schema IN ('public', 'sgd1', 'chain1') 
+                ORDER BY table_name;
                 " -t -A
+            `);
+            
+            const availableTables = tables.trim().split('\n').filter(line => line.trim().length > 0);
+            await this.log(`可用数据库表: ${availableTables.join(', ')}`);
+            
+            // 构建动态查询
+            let query = '';
+            if (availableTables.includes('ethereum_blocks')) {
+                query += "SELECT 'ethereum_blocks' as table_name, COUNT(*) as count FROM ethereum_blocks";
+            }
+            if (availableTables.includes('sgd1.pair')) {
+                query += query ? " UNION ALL " : "";
+                query += "SELECT 'sgd1.pair' as table_name, COUNT(*) as count FROM sgd1.pair";
+            }
+            if (availableTables.includes('sgd1.swap')) {
+                query += query ? " UNION ALL " : "";
+                query += "SELECT 'sgd1.swap' as table_name, COUNT(*) as count FROM sgd1.swap";
+            }
+            if (availableTables.includes('sgd1.mint')) {
+                query += query ? " UNION ALL " : "";
+                query += "SELECT 'sgd1.mint' as table_name, COUNT(*) as count FROM sgd1.mint";
+            }
+            if (availableTables.includes('sgd1.burn')) {
+                query += query ? " UNION ALL " : "";
+                query += "SELECT 'sgd1.burn' as table_name, COUNT(*) as count FROM sgd1.burn";
+            }
+            if (availableTables.includes('sgd1.pair_created')) {
+                query += query ? " UNION ALL " : "";
+                query += "SELECT 'sgd1.pair_created' as table_name, COUNT(*) as count FROM sgd1.pair_created";
+            }
+            if (availableTables.includes('sgd1.token')) {
+                query += query ? " UNION ALL " : "";
+                query += "SELECT 'sgd1.token' as table_name, COUNT(*) as count FROM sgd1.token";
+            }
+            
+            if (!query) {
+                await this.log(`未找到预期的数据库表`);
+                return [];
+            }
+            
+            const { stdout } = await execAsync(`
+                docker exec ${config.POSTGRES_CONTAINER} psql -U ${config.POSTGRES_USER} -d ${config.POSTGRES_DB} -c "${query};" -t -A
             `);
             return stdout.trim().split('\n').filter(line => line.trim().length > 0);
         } catch (error) {

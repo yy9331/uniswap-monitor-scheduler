@@ -1,561 +1,187 @@
-# Uniswap V2 Subgraph Monitor Scheduler
+# Uniswap V2 监控调度器
 
-[English](README.md) · [中文](README.zh-CN.md)
+[English](README_EN.md) · [中文](README.md)
 
-An automated monitoring system for Uniswap V2 subgraph indexing progress with scheduled monitoring, database tracking, and comprehensive reporting. **Now fully migrated to TypeScript for better type safety and development experience.**
+监控 Uniswap V2 子图扫链进度的自动化工具，已配置为使用本地 RPC 节点。
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Node.js](https://img.shields.io/badge/Node.js-16+-green.svg)](https://nodejs.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue.svg)](https://www.typescriptlang.org/)
-[![Docker](https://img.shields.io/badge/Docker-Required-blue.svg)](https://docker.com/)
+## 🚀 快速开始
 
-## 📚 Quick Navigation
+### 安装和启动
+```bash
+cd /home/code/uniswap-v2-monitor/uniswap-monitor-scheduler
+npm install && npm run build
+npm run start
+```
 
-- **[🚀 Production Deployment Guide](guides/PRODUCTION_DEPLOYMENT.md)** - Best practices for production environment
-- **[📋 Quick Start](#-quick-start)** - Get started quickly
-- **[⚙️ Configuration](#-configuration)** - Configure monitoring parameters
-- **[🛠️ Management](#-management-commands)** - Service management commands
+### 实时查看状态
+```bash
+./realtime-monitor.sh
+```
 
-## ✨ Features
+### 立即生成报告
+```bash
+npm run monitor:dev
+```
 
-- 🕐 **Scheduled Monitoring**: Automated daily monitoring at 7:00 AM
-- 📊 **Progress Tracking**: Real-time subgraph indexing progress monitoring
-- 💾 **Database Monitoring**: Track database size and record counts
-- 🐳 **Docker Status**: Monitor container health and status
-- 📈 **Comprehensive Reporting**: Generate detailed JSON and readable reports
-- 📝 **Complete Logging**: Full operation logs with timestamps
-- ⚙️ **Flexible Configuration**: Easy parameter modification via config files
-- ⏰ **Auto-Stop**: Automatic shutdown after configured monitoring period
-- 🔒 **Type Safety**: Full TypeScript support with strict type checking
-- 🚀 **Easy Deployment**: One-click deployment script for production
-- 💽 **Disk Space Monitoring**: Monitor server disk space and project usage with early warnings
+## 📊 当前状态
 
-## 🏗️ Project Structure
+### 以太坊同步进度
+- **当前区块**: 4,777,814
+- **目标区块**: 10,000,835 (Uniswap V2 Factory)
+- **同步进度**: 48%
+- **预计时间**: 约 4-5 小时
+
+### 服务状态
+- ✅ Graph Node: 运行中
+- ✅ PostgreSQL: 运行中
+- ✅ IPFS: 运行中
+- ❌ 子图: 等待部署 (需要等区块同步完成)
+
+## 🛠️ 常用命令
+
+```bash
+# 实时状态
+./realtime-monitor.sh
+
+# 立即生成报告
+npm run monitor:dev
+
+# 测试功能
+npm run test:dev
+
+# 查看日志
+tail -f scheduler.log
+
+# 查看报告
+ls -la reports/ | tail -5
+cat reports/report-$(date +%Y-%m-%d)*.txt
+```
+
+## ⚙️ 配置说明
+
+### 主要配置 (src/config.ts)
+- `ETHEREUM_RPC`: `http://localhost:8545` (本地节点)
+- `POSTGRES_CONTAINER`: `uniswap-v2-monitor-subgraph_postgres_1`
+- `MONITOR_DAYS`: 10 天
+- `CRON_SCHEDULES`: 每天 7:00 和 19:00
+
+### 快速配置修改
+```bash
+# 查看当前配置
+npm run config
+
+# 修改监控天数
+npm run config:days
+
+# 修改定时任务
+npm run config:schedule
+```
+
+## 📈 监控内容
+
+### 自动监控指标
+- ✅ 以太坊区块同步进度
+- ✅ 子图扫描进度
+- ✅ 数据库大小和记录数
+- ✅ Docker 容器状态
+- ✅ 磁盘空间使用情况
+- ✅ 系统资源使用情况
+
+### 报告格式
+- **JSON**: `reports/report-YYYY-MM-DD-HH-MM.json`
+- **可读**: `reports/report-YYYY-MM-DD-HH-MM.txt`
+
+## 🔧 故障排除
+
+### 常见问题
+1. **RPC 连接失败**: 检查 Ethereum Node 是否运行
+2. **数据库连接失败**: 检查 PostgreSQL 容器状态
+3. **报告生成失败**: 检查磁盘空间
+
+### 调试命令
+```bash
+# 测试 RPC 连接
+curl -X POST -H "Content-Type: application/json" \
+  --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' \
+  http://localhost:8545
+
+# 测试数据库连接
+docker exec uniswap-v2-monitor-subgraph_postgres_1 psql -U graph-node -d graph-node -c "SELECT COUNT(*) FROM ethereum_blocks;"
+
+# 检查服务状态
+docker-compose ps
+```
+
+## 📁 项目结构
 
 ```
 uniswap-monitor-scheduler/
-├── src/                    # TypeScript source files
-│   ├── types.ts           # Type definitions
-│   ├── config.ts          # Configuration file
-│   ├── monitor.ts         # Core monitoring logic
-│   ├── index.ts           # Main scheduler
-│   ├── test.ts            # Test script
-│   └── config-helper.ts   # Configuration helper
-├── dist/                   # Compiled JavaScript files
-├── logs/                   # Log files
-├── reports/                # Report files
-├── package.json           # Project configuration
-├── tsconfig.json          # TypeScript configuration
-├── start.sh               # Startup script
-├── setup-deployment.sh    # One-time deployment script
-├── README.md              # English documentation
-├── README.zh-CN.md        # Chinese documentation
-└── LICENSE                # MIT License
+├── README.md              # 中文操作指南
+├── README_EN.md           # 英文操作指南
+├── realtime-monitor.sh    # 实时监控脚本
+├── start.sh              # 服务启动脚本
+├── setup-deployment.sh    # 部署脚本
+├── clean-reports.sh       # 清理报告脚本
+├── ecosystem.config.js    # PM2 配置文件
+├── package.json          # 项目配置
+├── tsconfig.json         # TypeScript 配置
+├── src/                  # TypeScript 源代码
+│   ├── index.ts          # 主程序入口
+│   ├── monitor.ts        # 监控核心逻辑
+│   ├── config.ts         # 配置文件
+│   ├── types.ts          # 类型定义
+│   ├── test.ts           # 测试脚本
+│   └── config-helper.ts  # 配置助手
+├── dist/                 # 编译后的 JavaScript 文件
+├── logs/                 # 日志文件目录
+├── reports/              # 监控报告目录
+└── node_modules/         # Node.js 依赖包
 ```
 
-## 🚀 Quick Start
+### 📋 主要文件说明
 
-### 1. Quick Deployment (Recommended)
+#### 脚本文件
+- `realtime-monitor.sh` - 实时监控脚本，一键查看所有状态
+- `start.sh` - 服务启动脚本，支持多种运行模式
+- `setup-deployment.sh` - 部署脚本，自动化安装和配置
+- `clean-reports.sh` - 清理旧报告脚本
+
+#### 配置文件
+- `package.json` - 项目配置和依赖管理
+- `tsconfig.json` - TypeScript 编译配置
+- `ecosystem.config.js` - PM2 进程管理配置
+- `src/config.ts` - 监控参数配置
+
+#### 源代码
+- `src/index.ts` - 主程序入口，调度器核心
+- `src/monitor.ts` - 监控逻辑，包含所有监控功能
+- `src/config.ts` - 配置文件，集中管理所有参数
+- `src/types.ts` - TypeScript 类型定义
+- `src/test.ts` - 测试脚本，验证功能
+- `src/config-helper.ts` - 配置助手，交互式配置
+
+#### 输出目录
+- `dist/` - 编译后的 JavaScript 文件，用于生产环境
+- `logs/` - 日志文件，记录运行状态和错误信息
+- `reports/` - 监控报告，JSON 和可读格式
+
+## 📞 快速帮助
 
 ```bash
-# Clone the project and run the deployment script
-git clone <your-repository-url>
-cd uniswap-monitor-scheduler
-./setup-deployment.sh
+# 一键检查所有状态
+./realtime-monitor.sh
+
+# 立即生成报告
+npm run monitor:dev
+
+# 启动监控服务
+npm run start
+
+# 查看文档
+cat README.md          # 中文版
+cat README_EN.md       # 英文版
 ```
-
-### 2. Manual Installation
-
-```bash
-# Install dependencies
-npm install
-
-# Build the project
-npm run build
-
-# Test functionality
-npm run test:dev
-
-# Start the service
-./start.sh start
-```
-
-### 3. Production Deployment
-
-```bash
-# Background run
-nohup npm start > scheduler.log 2>&1 &
-
-# Or using PM2
-npm install -g pm2
-pm2 start dist/index.js --name "uniswap-monitor"
-```
-
-## ⚙️ Configuration Management
-
-### 📝 Configuration File (src/config.ts)
-
-All monitoring parameters are centralized in `src/config.ts` for easy modification:
-
-```typescript
-const config: Config = {
-    MONITOR_DAYS: 10,                    // Monitoring duration in days
-    CRON_SCHEDULE: '0 7 * * *',         // Cron job expression
-    TIMEZONE: 'Asia/Shanghai',           // Timezone setting
-    SUBGRAPH_PATH: '/path/to/subgraph',  // Subgraph path
-    GRAPHQL_ENDPOINT: 'http://...',      // GraphQL endpoint
-    ETHEREUM_RPC: 'https://...',         // Ethereum RPC
-    
-    // Disk space monitoring
-    DISK_MONITORING: {
-        enabled: true,                    // Enable disk space monitoring
-        warning_threshold: 80,            // Warning threshold (80%)
-        critical_threshold: 90,           // Critical threshold (90%)
-        check_paths: ['/', '/home', '/var', '/tmp']  // Paths to monitor
-    }
-    // ... more configuration items
-};
-```
-
-### 🛠️ Configuration Helper
-
-Use the config helper to easily view and modify settings:
-
-```bash
-# View current configuration
-npm run config
-
-# Modify monitoring duration
-npm run config:days 15
-
-# Modify cron schedule
-npm run config:schedule "0 8 * * *"
-
-# Modify timezone
-npm run config:timezone "America/New_York"
-
-# Modify timeout
-npm run config:timeout 15000
-
-# Modify retries
-npm run config:retries 5
-
-# Disk space monitoring configuration
-npm run config:disk-enabled true
-npm run config:disk-warning 85
-npm run config:disk-critical 95
-```
-
-## 🛠️ Management Commands
-
-### Service Management
-
-```bash
-./start.sh start     # Start service
-./start.sh stop      # Stop service
-./start.sh restart   # Restart service
-./start.sh status    # Check status
-./start.sh logs      # View logs
-./start.sh reports   # View reports
-./start.sh dev       # Start in development mode
-./start.sh test      # Run tests
-./start.sh config    # Show configuration
-```
-
-### Development Mode
-
-```bash
-npm run dev          # Run in development mode
-npm run test:dev     # Run tests in development mode
-npm run monitor:dev  # Run monitor in development mode
-```
-
-### Production Mode
-
-```bash
-npm run build        # Build project
-npm start            # Run in production mode
-npm run test         # Run tests in production mode
-npm run monitor      # Run monitor in production mode
-```
-
-## 📊 Monitoring Content
-
-### 📊 Block Progress Monitoring
-- Current Ethereum latest block
-- Subgraph scanned blocks
-- Scanning progress percentage
-- Remaining blocks to scan
-
-### 💾 Database Monitoring
-- PostgreSQL database size
-- Record count statistics for each table
-- Data growth trends
-
-### 🐳 System Status Monitoring
-- Docker container running status
-- Graph node health status
-- Network connection status
-
-### 💽 Disk Space Monitoring
-- **System Disk Space**: Monitor all mounted filesystems
-- **Project Usage**: Track project directory space usage
-- **Database Size**: Monitor PostgreSQL database growth
-- **Early Warnings**: Alert when disk usage exceeds thresholds
-- **Space Breakdown**: Detailed breakdown of space usage by component
-
-## 📋 Report Formats
-
-### JSON Report
-```json
-{
-  "timestamp": "2024-08-03 07:00:00",
-  "currentBlock": 23056926,
-  "subgraphBlock": 10004985,
-  "databaseSize": "718M",
-  "progress": {
-    "totalBlocks": 13051941,
-    "scannedBlocks": 4150,
-    "progress": 0.03,
-    "remainingBlocks": 13047791
-  },
-  "databaseStats": [
-    {"table": "chain1.blocks", "count": 2840},
-    {"table": "sgd1.pair", "count": 0},
-    {"table": "sgd1.swap", "count": 0}
-  ],
-  "diskSpace": {
-    "system": [
-      {
-        "filesystem": "/dev/sda1",
-        "size": "49G",
-        "used": "8.0G",
-        "available": "41G",
-        "used_percentage": 17,
-        "mountpoint": "/",
-        "status": "normal"
-      }
-    ],
-    "project": {
-      "project_path": "/path/to/project",
-      "total_size": "41M",
-      "database_size": "1.3G",
-      "logs_size": "20K",
-      "reports_size": "92K",
-      "other_size": "41M"
-    },
-    "warnings": []
-  }
-}
-```
-
-### Readable Report
-```
-=== Uniswap V2 Subgraph Monitoring Report ===
-Generated: 2024-08-03 07:00:00
-
-📊 Block Progress:
-  Current Ethereum Block: 23,056,926
-  Subgraph Scanned Block: 10,004,985
-  Scanning Progress: 0.03%
-  Scanned Blocks: 4,150
-  Remaining Blocks: 13,047,791
-
-💾 Database Information:
-  Database Size: 718M
-
-📈 Data Statistics:
-  chain1.blocks: 2,840 records
-  sgd1.pair: 0 records
-  sgd1.swap: 0 records
-
-💽 Disk Space Monitoring:
-  System Disk Space:
-    🟢 /: 8.0G/49G (17%)
-    🟢 /home: 2.1G/49G (4%)
-  Project Space Usage:
-    Total Size: 41M
-    Database: 1.3G
-    Logs: 20K
-    Reports: 92K
-    Other: 41M
-
-🐳 Docker Status:
-[Container status information]
-```
-
-## 🚀 Server Deployment
-
-### Environment Requirements
-
-- **OS**: Linux (Ubuntu 20.04+ / CentOS 7+)
-- **Node.js**: 16.x or higher
-- **Docker**: For running subgraph services
-- **Memory**: At least 2GB RAM
-- **Storage**: At least 10GB available space
-
-### Quick Deployment
-
-```bash
-# 1. Install dependencies
-sudo apt update && sudo apt upgrade -y
-curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-sudo apt-get install -y nodejs
-
-# 2. Install Docker
-curl -fsSL https://get.docker.com -o get-docker.sh
-sudo sh get-docker.sh
-sudo usermod -aG docker $USER
-
-# 3. Clone and deploy
-git clone <your-repository-url>
-cd uniswap-monitor-scheduler
-./setup-deployment.sh
-```
-
-### System Service Configuration (Optional)
-
-Create systemd service:
-
-```bash
-sudo nano /etc/systemd/system/uniswap-monitor.service
-```
-
-Add content:
-
-```ini
-[Unit]
-Description=Uniswap Monitor Scheduler
-After=network.target
-
-[Service]
-Type=simple
-User=your-username
-WorkingDirectory=/path/to/uniswap-monitor-scheduler
-ExecStart=/usr/bin/npm start
-Restart=always
-RestartSec=10
-Environment=NODE_ENV=production
-
-[Install]
-WantedBy=multi-user.target
-```
-
-Enable service:
-
-```bash
-sudo systemctl daemon-reload
-sudo systemctl enable uniswap-monitor
-sudo systemctl start uniswap-monitor
-sudo systemctl status uniswap-monitor
-```
-
-## 🔧 TypeScript Migration
-
-### Migration Summary
-
-The project has been successfully migrated from JavaScript to TypeScript, providing:
-
-- **Type Safety**: Compile-time error checking
-- **Better Error Handling**: Explicit error messages
-- **Development Experience**: IDE intellisense and autocomplete
-- **Code Quality**: Strict type checking
-
-### Migration Details
-
-- ✅ All JavaScript files migrated to TypeScript
-- ✅ Complete type definitions added
-- ✅ Strict TypeScript configuration
-- ✅ Build system updated
-- ✅ All compilation errors fixed
-- ✅ Development and production modes supported
-
-### New Project Structure
-
-```
-src/
-├── types.ts           # Type definitions
-├── config.ts          # Configuration
-├── monitor.ts         # Core monitoring logic
-├── index.ts           # Main scheduler
-├── test.ts            # Test script
-└── config-helper.ts   # Configuration helper
-```
-
-## 📁 Logs and Reports
-
-### Log Files
-- `logs/monitor-YYYY-MM-DD.log`: Monitoring task logs
-- `logs/scheduler-YYYY-MM-DD.log`: Scheduler logs
-
-### Report Files
-- `reports/report-YYYY-MM-DD-HH-mm.json`: JSON format reports
-- `reports/report-YYYY-MM-DD-HH-mm.txt`: Readable format reports
-
-## ⚙️ Configuration
-
-### Monitoring Paths
-- Subgraph project path: `/home/code/uniswap-v2-monitor/uniswap-v2-monitor-subgraph`
-- GraphQL endpoint: `http://localhost:8000/subgraphs/name/uni-swap-v2-monitor`
-
-### Schedule Configuration
-- Execution time: Daily at 7:00 AM
-- Timezone: Asia/Shanghai
-- Monitoring period: 10 days (configurable in src/config.ts)
-
-### Configurable Parameters
-
-| Parameter | Description | Default Value |
-|-----------|-------------|---------------|
-| `MONITOR_DAYS` | Monitoring duration in days | 10 |
-| `CRON_SCHEDULE` | Cron job expression | `0 7 * * *` |
-| `TIMEZONE` | Timezone | `Asia/Shanghai` |
-| `SUBGRAPH_PATH` | Subgraph path | `/home/code/...` |
-| `GRAPHQL_ENDPOINT` | GraphQL endpoint | `http://localhost:8000/...` |
-| `ETHEREUM_RPC` | Ethereum RPC | `https://eth.llamarpc.com` |
-| `REQUEST_TIMEOUT` | Request timeout | 10000ms |
-| `MAX_RETRIES` | Maximum retry attempts | 3 |
-| `DISK_MONITORING.enabled` | Enable disk space monitoring | true |
-| `DISK_MONITORING.warning_threshold` | Disk warning threshold | 80% |
-| `DISK_MONITORING.critical_threshold` | Disk critical threshold | 90% |
-
-## 🔧 Troubleshooting
-
-### Common Issues
-
-1. **Subgraph Service Not Running**
-   ```bash
-   # Check Docker container status
-   docker ps --filter "name=uni-swap-v2-monitor"
-   
-   # Start subgraph service
-   cd /home/code/uniswap-v2-monitor/uniswap-v2-monitor-subgraph
-   docker-compose up -d
-   ```
-
-2. **Database Connection Failed**
-   ```bash
-   # Check PostgreSQL container
-   docker logs uni-swap-v2-monitor_postgres_1
-   
-   # Restart database
-   docker-compose restart postgres
-   ```
-
-3. **TypeScript Compilation Errors**
-   ```bash
-   # Check TypeScript configuration
-   npm run type-check
-   
-   # Rebuild project
-   npm run build
-   ```
-
-4. **Disk Space Warnings**
-   ```bash
-   # Check disk space manually
-   df -h
-   
-   # Clean up old logs and reports
-   find logs/ -name "*.log" -mtime +30 -delete
-   find reports/ -name "*.json" -mtime +30 -delete
-   ```
-
-### Debug Mode
-
-```bash
-# Enable detailed logging
-DEBUG=* npm start
-
-# View real-time logs
-tail -f logs/scheduler-$(date +%Y-%m-%d).log
-```
-
-## 📈 Performance Optimization
-
-### System Optimization
-
-```bash
-# Increase file descriptor limits
-echo "* soft nofile 65536" | sudo tee -a /etc/security/limits.conf
-echo "* hard nofile 65536" | sudo tee -a /etc/security/limits.conf
-
-# Optimize kernel parameters
-echo "vm.max_map_count=262144" | sudo tee -a /etc/sysctl.conf
-sudo sysctl -p
-```
-
-### Monitoring Optimization
-
-```bash
-# Adjust monitoring frequency (reduce resource consumption)
-npm run config:schedule "0 */6 * * *"  # Execute every 6 hours
-
-# Adjust timeout time
-# Edit REQUEST_TIMEOUT value in src/config.ts
-
-# Adjust disk space monitoring thresholds
-npm run config:disk-warning 85  # Set warning threshold to 85%
-npm run config:disk-critical 95 # Set critical threshold to 95%
-```
-
-## 🔒 Security Recommendations
-
-### Network Security
-
-```bash
-# Configure firewall
-sudo ufw allow 22/tcp
-sudo ufw allow 8000/tcp  # Graph Node
-sudo ufw allow 5432/tcp  # PostgreSQL
-sudo ufw enable
-```
-
-### Access Control
-
-```bash
-# Restrict file access permissions
-chmod 600 src/config.ts
-chmod 700 logs/ reports/
-
-# Run with non-root user
-sudo useradd -m -s /bin/bash uniswap-monitor
-sudo chown -R uniswap-monitor:uniswap-monitor /path/to/uniswap-monitor-scheduler
-```
-
-## 🚀 Extensions
-
-### Email Notifications
-Add email notification functionality to send reports after monitoring tasks complete.
-
-### WeChat/DingTalk Notifications
-Integrate with WeChat or DingTalk bots to send monitoring notifications.
-
-### Data Visualization
-Import monitoring data into tools like Grafana for visual display.
-
-### Web Interface
-Add Express server to provide web interface for viewing monitoring results.
-
-### Advanced Disk Monitoring
-- Set up automated disk cleanup scripts
-- Configure disk space alerts via email/SMS
-- Implement disk usage trend analysis
-
-## 📄 License
-
-[MIT License](LICENSE)
-
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## 📞 Support
-
-If you have any questions or issues, please [open an issue](https://github.com/yy9331/uniswap-monitor-scheduler/issues).
 
 ---
 
-**Migration Complete!** 🎉
-
-The project has been successfully migrated to TypeScript and is ready for production deployment with improved type safety and development experience. 
+**注意**: 所有配置已优化为使用本地 RPC 节点，无需额外配置。 
